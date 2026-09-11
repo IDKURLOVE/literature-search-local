@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.config import settings
 from app.database import Base, engine
@@ -67,6 +68,45 @@ app.include_router(search.router, prefix="/api/search", tags=["search"])
 app.include_router(topics.router, prefix="/api/topics", tags=["topics"])
 app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
 app.include_router(export.router, prefix="/api/export", tags=["export"])
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return HTMLResponse(
+        """
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>LitScope Local · API</title>
+  <style>
+    body { font-family: Georgia, "Times New Roman", serif; background: #faf9f5; color: #141413;
+           max-width: 40rem; margin: 12vh auto; padding: 0 1.5rem; line-height: 1.65; }
+    a { color: #cc785c; }
+    code { font-family: ui-monospace, Consolas, monospace; background: #f5f0e8;
+           padding: 0.1em 0.35em; border-radius: 4px; }
+    .muted { color: #6c6a64; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <h1>LitScope Local</h1>
+  <p>这是 <strong>API 服务</strong>（默认 <code>:8000</code>），不是完整界面。</p>
+  <ul>
+    <li>界面请打开：<a href="http://localhost:3000">http://localhost:3000</a></li>
+    <li>健康检查：<a href="/api/health">/api/health</a></li>
+    <li>Swagger：<a href="/docs">/docs</a></li>
+  </ul>
+  <p class="muted">若 3000 打不开，请在另一终端启动前端：<code>cd frontend &amp;&amp; npm run dev</code></p>
+  <p class="muted">Developed with Xiaomi MIMO — MiMo-X-Pro-Preview</p>
+</body>
+</html>
+"""
+    )
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return RedirectResponse(url="/")
 
 
 @app.get("/api/health")
