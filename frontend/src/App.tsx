@@ -11,33 +11,6 @@ const queryClient = new QueryClient({
   },
 });
 
-const themeConfig = {
-  algorithm: theme.defaultAlgorithm,
-  message: {
-    duration: 2,
-    maxCount: 2,
-  },
-  token: {
-    colorPrimary: "#cc785c",
-    colorLink: "#cc785c",
-    colorSuccess: "#5db872",
-    colorError: "#c64545",
-    colorText: "#3d3d3a",
-    colorTextHeading: "#141413",
-    colorBorder: "#e6dfd8",
-    colorBorderSecondary: "#ebe6df",
-    colorBgContainer: "#fffefb",
-    colorBgElevated: "#fffefb",
-    colorBgLayout: "#faf9f5",
-    borderRadius: 8,
-    borderRadiusLG: 12,
-    borderRadiusSM: 6,
-    fontFamily: `Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`,
-    fontSize: 14,
-    controlHeight: 40,
-  },
-};
-
 function Shell() {
   return (
     <div className="ls-shell">
@@ -71,7 +44,30 @@ function Shell() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ConfigProvider theme={themeConfig}>
+      <ConfigProvider
+        theme={{
+          algorithm: theme.defaultAlgorithm,
+          token: {
+            colorPrimary: "#cc785c",
+            colorLink: "#cc785c",
+            colorSuccess: "#5db872",
+            colorError: "#c64545",
+            colorText: "#3d3d3a",
+            colorTextHeading: "#141413",
+            colorBorder: "#e6dfd8",
+            colorBorderSecondary: "#ebe6df",
+            colorBgContainer: "#fffefb",
+            colorBgElevated: "#fffefb",
+            colorBgLayout: "#faf9f5",
+            borderRadius: 8,
+            borderRadiusLG: 12,
+            borderRadiusSM: 6,
+            fontFamily: `Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`,
+            fontSize: 14,
+            controlHeight: 40,
+          },
+        }}
+      >
         <AntApp>
           <BrowserRouter>
             <Shell />

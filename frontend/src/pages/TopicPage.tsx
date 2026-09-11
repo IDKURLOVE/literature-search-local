@@ -30,31 +30,31 @@ export function TopicPage() {
         sources: values.sources?.length ? values.sources : ["crossref", "openalex"],
       }),
     onSuccess: () => {
-      message.success({ content: "主题已创建，正在抓取文献", key: "topic-op", duration: 2 });
+      toast("success", "主题已创建，正在抓取文献");
       form.resetFields();
       setShowForm(false);
       queryClient.invalidateQueries({ queryKey: ["topics"] });
       queryClient.invalidateQueries({ queryKey: ["papers"] });
     },
-    onError: () => message.error({ content: "创建失败，请检查后端是否已启动", key: "topic-op", duration: 3 }),
+    onError: () => toast("error", "创建失败，请检查后端是否已启动"),
   });
 
   const refreshMut = useMutation({
     mutationFn: (t: Topic) => refreshTopic(t.id),
     onSuccess: () => {
-      message.success({ content: "已开始刷新", key: "topic-op", duration: 2 });
+      toast("success", "已开始刷新");
       queryClient.invalidateQueries({ queryKey: ["topics"] });
     },
-    onError: () => message.error({ content: "刷新失败", key: "topic-op", duration: 2 }),
+    onError: () => toast("error", "刷新失败"),
   });
 
   const deleteMut = useMutation({
     mutationFn: (t: Topic) => deleteTopic(t.id),
     onSuccess: () => {
-      message.success({ content: "已删除", key: "topic-op", duration: 2 });
+      toast("success", "已删除");
       queryClient.invalidateQueries({ queryKey: ["topics"] });
     },
-    onError: () => message.error({ content: "删除失败", key: "topic-op", duration: 2 }),
+    onError: () => toast("error", "删除失败"),
   });
 
   const openForm = () => {
@@ -62,6 +62,12 @@ export function TopicPage() {
     requestAnimationFrame(() => {
       document.getElementById("topic-name-input")?.focus();
     });
+  };
+
+  // ensure toasts always dismiss even if global config lags
+  const toast = (type: "success" | "error", content: string) => {
+    message.destroy("topic-op");
+    message.open({ type, content, key: "topic-op", duration: 2 });
   };
 
   return (
