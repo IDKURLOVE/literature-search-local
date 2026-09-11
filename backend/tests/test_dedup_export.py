@@ -58,7 +58,7 @@ def test_export_bibtex_author_join():
         venue="NeurIPS",
         doi="10.5555/3295222",
     )
-    content = _to_bibtex([paper])
+    content = "\n".join(_to_bibtex([paper]))
     assert "Ashish Vaswani and Noam Shazeer" in content
     assert "@article{paper1," in content
 
@@ -71,5 +71,5 @@ def test_export_ris_and_plain():
         venue="Note G",
         doi="10.1/x",
     )
-    assert "TY  - JOUR" in _to_ris([paper])
-    assert "Ada Lovelace" in _to_plain([paper])
+    assert "TY  - JOUR" in "\n".join(_to_ris([paper]))
+    assert "Ada Lovelace" in "\n".join(_to_plain([paper]))

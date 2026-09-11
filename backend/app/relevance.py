@@ -264,5 +264,5 @@ def rank_and_filter(
         s = score_paper(p.title, p.abstract, p.venue, terms)
         if is_relevant(p.title, p.abstract, p.venue, terms):
             scored.append((s, p))
-    scored.sort(key=lambda x: x[0], reverse=True)
+    scored.sort(key=lambda x: (-x[0], -(x[1].year or 0), x[1].title or ""))
     return scored[: max(limit, 1)]

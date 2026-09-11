@@ -113,8 +113,11 @@ class SearchResult(BaseModel):
 class ExportRequest(BaseModel):
     paper_ids: List[UUID] = Field(min_length=1)
     format: Literal["bibtex", "ris", "plain"] = "bibtex"
+    # Group output under research-topic headings; papers without topics → 未分类
+    group_by_topic: bool = True
 
 
 class ExportResponse(BaseModel):
     content: str
     format: str
+    groups: List[str] = Field(default_factory=list)

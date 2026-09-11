@@ -2,7 +2,7 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -29,7 +29,15 @@ async def create_paper(payload: PaperCreate, db: AsyncSession = Depends(get_db))
 
 @router.get("/", response_model=List[PaperOut])
 async def list_papers(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Paper).order_by(Paper.created_at.desc()))
+    # Newest year first (nulls last), then newest ingest — portable on SQLite/Postgres
+    year_null = case((Paper.year.is_(None), 1), else_=0)
+    result = await db.execute(
+        select(Paper).order_by(
+            year_null,
+            Paper.year.desc(),
+            Paper.created_at.desc(),
+        )
+    )
     return result.scalars().all()
 
 

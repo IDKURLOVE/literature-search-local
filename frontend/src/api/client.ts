@@ -82,10 +82,15 @@ export async function createPaper(paper: {
   return data;
 }
 
-export async function exportPapers(paperIds: string[], format: "bibtex" | "ris" | "plain"): Promise<string> {
-  const { data } = await api.post<{ content: string }>("/export/", {
+export async function exportPapers(
+  paperIds: string[],
+  format: "bibtex" | "ris" | "plain",
+  options?: { groupByTopic?: boolean },
+): Promise<{ content: string; groups?: string[] }> {
+  const { data } = await api.post<{ content: string; groups?: string[] }>("/export/", {
     paper_ids: paperIds,
     format,
+    group_by_topic: options?.groupByTopic ?? true,
   });
-  return data.content;
+  return data;
 }

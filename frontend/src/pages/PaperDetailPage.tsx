@@ -19,6 +19,7 @@ export function PaperDetailPage() {
   const { data, isLoading, refetch } = useQuery({ queryKey: ["papers"], queryFn: fetchPapers });
   const [selected, setSelected] = useState<string[]>([]);
   const [format, setFormat] = useState<"bibtex" | "ris" | "plain">("bibtex");
+  const [groupByTopic, setGroupByTopic] = useState(true);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [tagDrafts, setTagDrafts] = useState<Record<string, string[]>>({});
 
@@ -39,19 +40,28 @@ export function PaperDetailPage() {
       return;
     }
     try {
-      const content = await exportPapers(selected, format);
+      const result = await exportPapers(selected, format, { groupByTopic });
+      const content = result.content;
       const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       const ext = format === "bibtex" ? "bib" : format === "ris" ? "ris" : "txt";
-      a.download = `litscope-export-${selected.length}.${ext}`;
+      a.download = groupByTopic
+        ? `litscope-export-by-topic-${selected.length}.${ext}`
+        : `litscope-export-${selected.length}.${ext}`;
       a.click();
       URL.revokeObjectURL(url);
+      const groupNote =
+        groupByTopic && result.groups?.length
+          ? ` · 分组：${result.groups.join(" / ")}`
+          : groupByTopic
+            ? " · 已按研究主题分组"
+            : "";
       message.success({
-        content: `已导出 ${selected.length} 篇（${FORMAT_LABEL[format]}）`,
+        content: `已导出 ${selected.length} 篇（${FORMAT_LABEL[format]}）${groupNote}`,
         key: "lib-msg",
-        duration: 2,
+        duration: 3,
       });
     } catch {
       message.error({ content: "导出失败", key: "lib-msg", duration: 2 });
@@ -77,7 +87,7 @@ export function PaperDetailPage() {
           文献库
         </Title>
         <Paragraph type="secondary">
-          主题刷新或收藏入库的文献。勾选后可导出；导出前可核对下方「将导出的文献」列表。
+          主题刷新或收藏入库的文献，按发表年份从新到旧排列。勾选后可导出；默认按研究主题分组输出。
         </Paragraph>
       </section>
 
@@ -96,6 +106,9 @@ export function PaperDetailPage() {
                 { label: "Plain Text", value: "plain" },
               ]}
             />
+            <Checkbox checked={groupByTopic} onChange={(e) => setGroupByTopic(e.target.checked)}>
+              按研究主题分组
+            </Checkbox>
             <Button type="primary" icon={<DownloadOutlined />} onClick={handleExport}>
               导出所选
             </Button>
