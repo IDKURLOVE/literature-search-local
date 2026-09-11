@@ -1,0 +1,198 @@
+/* Claude DESIGN.md tokens — sole visual source of truth */
+:root {
+  --ls-canvas: #faf9f5;
+  --ls-surface-soft: #f5f0e8;
+  --ls-surface-card: #efe9de;
+  --ls-hairline: #e6dfd8;
+  --ls-hairline-soft: #ebe6df;
+  --ls-ink: #141413;
+  --ls-body: #3d3d3a;
+  --ls-body-strong: #252523;
+  --ls-muted: #6c6a64;
+  --ls-muted-soft: #8e8b82;
+  --ls-primary: #cc785c;
+  --ls-primary-active: #a9583e;
+  --ls-on-primary: #ffffff;
+  --ls-success: #5db872;
+  --ls-error: #c64545;
+  --ls-radius-sm: 6px;
+  --ls-radius-md: 8px;
+  --ls-radius-lg: 12px;
+  --ls-font-display: Georgia, "Times New Roman", "Songti SC", serif;
+  --ls-font-body: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --ls-font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ls-canvas);
+  color: var(--ls-body);
+  font-family: var(--ls-font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ls-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 420px at 10% -10%, rgba(204, 120, 92, 0.08), transparent 60%),
+    var(--ls-canvas);
+}
+
+.ls-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 28px;
+  background: rgba(250, 249, 245, 0.92);
+  border-bottom: 1px solid var(--ls-hairline);
+  backdrop-filter: blur(10px);
+}
+
+.ls-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ls-brand-mark {
+  font-family: var(--ls-font-display);
+  font-size: 22px;
+  letter-spacing: -0.3px;
+  color: var(--ls-ink);
+}
+
+.ls-brand-sub {
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ls-muted-soft);
+  font-weight: 500;
+}
+
+.ls-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ls-nav a {
+  color: var(--ls-body);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: var(--ls-radius-sm);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ls-nav a:hover {
+  background: var(--ls-surface-soft);
+  color: var(--ls-ink);
+}
+
+.ls-nav a.active {
+  background: var(--ls-surface-card);
+  color: var(--ls-primary-active);
+}
+
+.ls-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+.ls-hero {
+  margin: 8px 0 28px;
+}
+
+.ls-hero h1 {
+  margin: 0 0 8px;
+  font-family: var(--ls-font-display);
+  font-size: clamp(32px, 5vw, 42px);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  color: var(--ls-ink);
+}
+
+.ls-hero p {
+  margin: 0;
+  max-width: 46rem;
+  color: var(--ls-muted);
+  font-size: 15px;
+}
+
+.ls-panel {
+  background: #fffefb;
+  border: 1px solid var(--ls-hairline);
+  border-radius: var(--ls-radius-lg);
+  padding: 20px;
+  box-shadow: 0 1px 0 rgba(20, 20, 19, 0.03);
+}
+
+.ls-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ls-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  color: var(--ls-muted);
+  font-size: 13px;
+}
+
+.ls-doi {
+  font-family: var(--ls-font-mono);
+  font-size: 12px;
+}
+
+.ls-footer {
+  margin-top: 48px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ls-hairline-soft);
+  color: var(--ls-muted-soft);
+  font-size: 12px;
+  text-align: center;
+}
+
+.ls-empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--ls-muted);
+}
+
+/* Ant Design overrides toward Claude tokens */
+.ant-btn-primary {
+  box-shadow: none !important;
+}
+
+.ant-layout,
+.ant-card {
+  background: transparent !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

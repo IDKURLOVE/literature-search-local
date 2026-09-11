@@ -1,0 +1,28 @@
+# Dependencies / build
+node_modules/
+dist/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.tsbuildinfo
+
+# Env & secrets
+.env
+.env.local
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Docker local overrides
+docker-compose.override.yml
