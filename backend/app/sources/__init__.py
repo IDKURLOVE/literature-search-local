@@ -65,8 +65,8 @@ async def search_all(request: SearchRequest) -> Dict[str, Any]:
 
     tasks = []
     selected = [s for s in request.sources if s in SOURCE_MAP]
-    # Fetch extra candidates so local relevance filter has room to cut noise
-    fetch_limit = min(100, max(request.limit * 3, request.limit))
+    # Pull a wide candidate pool; local rank/filter trims noise (recall-first)
+    fetch_limit = 100 if request.limit >= 15 else min(100, max(request.limit * 5, 40))
     fetch_request = request.model_copy(update={"limit": fetch_limit})
     for source in selected:
         tasks.append(SOURCE_MAP[source](fetch_request, translated))

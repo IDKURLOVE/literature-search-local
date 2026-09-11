@@ -8,7 +8,13 @@ interface SearchState {
   setSources: (s: string[]) => void;
 }
 
-export const DEFAULT_SOURCES = ["crossref", "openalex"];
+export const DEFAULT_SOURCES = [
+  "crossref",
+  "openalex",
+  "semantic_scholar",
+  "pubmed",
+  "arxiv",
+];
 
 export const useSearchStore = create<SearchState>()(
   persist(

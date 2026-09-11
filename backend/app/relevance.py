@@ -199,33 +199,78 @@ def expand_terms_for_apis(terms: Sequence[str]) -> List[str]:
     return expanded
 
 
+def _has_cjk(text: str) -> bool:
+    return any("一" <= ch <= "鿿" for ch in text)
+
+
+def english_only_terms(terms: Sequence[str]) -> List[str]:
+    """Map Chinese concepts to English phrases; keep ASCII tokens as-is."""
+    out: List[str] = []
+    seen = set()
+    for t in terms:
+        candidates: List[str] = []
+        if t.isascii():
+            candidates.append(t)
+        else:
+            candidates.extend(_ZH_EN.get(t, ()))
+            # fallback: keep CJK token only if no English mapping (local filter still uses it)
+        for c in candidates:
+            key = c.lower()
+            if key not in seen:
+                seen.add(key)
+                out.append(c)
+    return out
+
+
 def api_query_text(terms: Sequence[str], fallback: str) -> str:
-    expanded = expand_terms_for_apis(terms)
-    if not expanded:
+    """Text sent to Crossref/OpenAlex/S2/arXiv.
+
+    Chinese characters in global APIs hurt recall — when the user typed Chinese,
+    prefer English expansions only (e.g. 机器学习预测风速 → machine learning wind speed).
+    """
+    if not terms:
         return fallback.strip()
-    # Prefer AND-like concatenation for multi-term topics (Crossref/OpenAlex rank by co-occurrence)
-    return " ".join(expanded)
+    if any(_has_cjk(t) for t in terms):
+        eng = english_only_terms(terms)
+        if eng:
+            return " ".join(eng)
+    return " ".join(expand_terms_for_apis(terms))
 
 
 def _haystack(title: str, abstract: str, venue: str) -> str:
     return f"{title}\n{abstract}\n{venue}".lower()
 
 
-def score_paper(title: str, abstract: Optional[str], venue: Optional[str], terms: Sequence[str]) -> float:
+def score_paper(
+    title: str,
+    abstract: Optional[str],
+    venue: Optional[str],
+    terms: Sequence[str],
+    year: Optional[int] = None,
+) -> float:
     if not terms:
-        return 1.0
-    hay = _haystack(title or "", strip_markup(abstract), venue or "")
-    title_l = (title or "").lower()
-    score = 0.0
-    for t in expand_terms_for_apis(terms):
-        tl = t.lower()
-        if not tl:
-            continue
-        if tl in title_l:
-            score += 3.0
-        elif tl in hay:
-            score += 1.0
-    return score
+        base = 1.0
+    else:
+        hay = _haystack(title or "", strip_markup(abstract), venue or "")
+        title_l = (title or "").lower()
+        base = 0.0
+        for t in expand_terms_for_apis(terms):
+            tl = t.lower()
+            if not tl:
+                continue
+            if tl in title_l:
+                base += 3.0
+            elif tl in hay:
+                base += 1.0
+    # mild recency boost so newer on-topic papers win ties (WOS-like freshness)
+    if year is not None:
+        if year >= 2022:
+            base += 1.5
+        elif year >= 2018:
+            base += 0.8
+        elif year >= 2015:
+            base += 0.3
+    return base
 
 
 def is_relevant(
@@ -247,7 +292,6 @@ def is_relevant(
     if len(terms) == 2:
         return concept_hit(terms[0]) and concept_hit(terms[1])
 
-    # 3+ terms e.g. 机器学习 / 预测 / 风速 → require object (last) + any other
     if not concept_hit(terms[-1]):
         return False
     return any(concept_hit(t) for t in terms[:-1])
@@ -258,11 +302,29 @@ def rank_and_filter(
     terms: Sequence[str],
     limit: int,
 ):
-    """Return (kept_papers_with_score) sorted by score desc, relevance filtered."""
-    scored = []
+    """Score, hard-filter, then adaptively relax so recall is not near-zero."""
+    limit = max(limit, 1)
+    scored_all = []
     for p in papers:
-        s = score_paper(p.title, p.abstract, p.venue, terms)
-        if is_relevant(p.title, p.abstract, p.venue, terms):
-            scored.append((s, p))
-    scored.sort(key=lambda x: (-x[0], -(x[1].year or 0), x[1].title or ""))
-    return scored[: max(limit, 1)]
+        s = score_paper(p.title, p.abstract, p.venue, terms, getattr(p, "year", None))
+        rel = is_relevant(p.title, p.abstract, p.venue, terms)
+        scored_all.append((s, p, rel))
+
+    def sort_key(item):
+        s, p = item[0], item[1]
+        return (-s, -(p.year or 0), p.title or "")
+
+    hard = [(s, p) for s, p, rel in scored_all if rel]
+    hard.sort(key=sort_key)
+    # If hard filter leaves too few (or nothing), keep any positive-score hits
+    if len(hard) >= min(limit, 3):
+        return hard[:limit]
+
+    soft = [(s, p) for s, p, _ in scored_all if s > 0]
+    soft.sort(key=sort_key)
+    if soft:
+        return soft[:limit]
+
+    everything = [(s, p) for s, p, _ in scored_all]
+    everything.sort(key=sort_key)
+    return everything[:limit]

@@ -1,4 +1,10 @@
-from app.relevance import extract_terms, is_relevant, rank_and_filter, score_paper
+from app.relevance import (
+    api_query_text,
+    extract_terms,
+    is_relevant,
+    rank_and_filter,
+    score_paper,
+)
 from app.schemas import Author, PaperCreate
 
 
@@ -63,3 +69,27 @@ def test_multi_concept_requires_object_term():
     )
     assert not is_relevant(load_paper.title, load_paper.abstract, load_paper.venue, terms)
     assert is_relevant(wind_paper.title, wind_paper.abstract, wind_paper.venue, terms)
+
+
+def test_api_text_prefers_english_for_chinese_query():
+    terms = extract_terms("机器学习预测风速")
+    text = api_query_text(terms, "机器学习预测风速")
+    assert "machine learning" in text.lower()
+    assert "wind speed" in text.lower()
+    # should not send raw CJK to global APIs
+    assert "机器学习" not in text
+
+
+def test_adaptive_filter_keeps_positive_scores_when_hard_filter_empty():
+    # English-only papers that cannot match Chinese object term 风速 literally,
+    # but have English expansions → hard filter may be empty; soft path keeps them.
+    terms = extract_terms("机器学习预测风速")
+    en = PaperCreate(
+        title="Machine learning for wind speed forecasting: a review",
+        abstract="wind speed prediction using machine learning",
+        year=2025,
+        source_apis=["t"],
+    )
+    ranked = rank_and_filter([en], terms, limit=5)
+    assert ranked, "adaptive fallback should keep on-topic English paper"
+    assert "wind speed" in ranked[0][1].title.lower()
