@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { App, Button, Checkbox, Form, Input, Space, Typography } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,9 +18,56 @@ interface TopicFormValues {
 export function TopicPage() {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["topics"], queryFn: fetchTopics });
   const [showForm, setShowForm] = useState(false);
   const [form] = Form.useForm<TopicFormValues>();
+  const [refreshingIds, setRefreshingIds] = useState<string[]>([]);
+  const baselineRef = useRef<Record<string, string>>({});
+  const timersRef = useRef<number[]>([]);
+
+  // Poll faster while any topic is refreshing
+  const { data, isLoading } = useQuery({
+    queryKey: ["topics"],
+    queryFn: fetchTopics,
+    refetchInterval: refreshingIds.length ? 1500 : false,
+  });
+
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach((id) => window.clearTimeout(id));
+    };
+  }, []);
+
+  const toast = (type: "success" | "error" | "info", content: string) => {
+    message.destroy("topic-op");
+    message.open({ type, content, key: "topic-op", duration: 2 });
+    const t = window.setTimeout(() => {
+      message.destroy("topic-op");
+    }, 2200);
+    timersRef.current.push(t);
+  };
+
+  // When updated_at changes for a refreshing topic, mark done
+  useEffect(() => {
+    if (!data?.length || !refreshingIds.length) return;
+    const still: string[] = [];
+    let completed = 0;
+    for (const id of refreshingIds) {
+      const topic = data.find((t) => t.id === id);
+      if (!topic) continue;
+      const base = baselineRef.current[id];
+      if (base && topic.updated_at !== base) {
+        completed += 1;
+      } else {
+        still.push(id);
+      }
+    }
+    if (completed > 0) {
+      setRefreshingIds(still);
+      toast("success", "主题刷新完成");
+      queryClient.invalidateQueries({ queryKey: ["papers"] });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, refreshingIds]);
 
   const createMut = useMutation({
     mutationFn: (values: TopicFormValues) =>
@@ -29,10 +76,14 @@ export function TopicPage() {
         query: values.query.trim(),
         sources: values.sources?.length ? values.sources : ["crossref", "openalex"],
       }),
-    onSuccess: () => {
+    onSuccess: (created) => {
       toast("success", "主题已创建，正在抓取文献");
       form.resetFields();
       setShowForm(false);
+      if (created?.id) {
+        baselineRef.current[created.id] = created.updated_at;
+        setRefreshingIds((prev) => [...prev, created.id]);
+      }
       queryClient.invalidateQueries({ queryKey: ["topics"] });
       queryClient.invalidateQueries({ queryKey: ["papers"] });
     },
@@ -40,18 +91,24 @@ export function TopicPage() {
   });
 
   const refreshMut = useMutation({
-    mutationFn: (t: Topic) => refreshTopic(t.id),
-    onSuccess: () => {
-      toast("success", "已开始刷新");
+    mutationFn: (t: Topic) => refreshTopic(t.id).then(() => t),
+    onSuccess: (t) => {
+      baselineRef.current[t.id] = t.updated_at;
+      setRefreshingIds((prev) => (prev.includes(t.id) ? prev : [...prev, t.id]));
+      toast("info", "已开始刷新…");
       queryClient.invalidateQueries({ queryKey: ["topics"] });
     },
-    onError: () => toast("error", "刷新失败"),
+    onError: () => {
+      toast("error", "刷新失败");
+      setRefreshingIds((prev) => prev);
+    },
   });
 
   const deleteMut = useMutation({
     mutationFn: (t: Topic) => deleteTopic(t.id),
-    onSuccess: () => {
+    onSuccess: (_d, t) => {
       toast("success", "已删除");
+      setRefreshingIds((prev) => prev.filter((id) => id !== t.id));
       queryClient.invalidateQueries({ queryKey: ["topics"] });
     },
     onError: () => toast("error", "删除失败"),
@@ -64,11 +121,15 @@ export function TopicPage() {
     });
   };
 
-  // ensure toasts always dismiss even if global config lags
-  const toast = (type: "success" | "error", content: string) => {
-    message.destroy("topic-op");
-    message.open({ type, content, key: "topic-op", duration: 2 });
-  };
+  // Safety: never leave a topic stuck in refreshing forever
+  useEffect(() => {
+    if (!refreshingIds.length) return;
+    const t = window.setTimeout(() => {
+      setRefreshingIds([]);
+      toast("info", "刷新仍在后台进行，可稍后查看篇数变化");
+    }, 90000);
+    return () => window.clearTimeout(t);
+  }, [refreshingIds.length]);
 
   return (
     <div>
@@ -94,7 +155,7 @@ export function TopicPage() {
             研究主题
           </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            保存常用检索词，按配置周期自动刷新，也可手动立即刷新。
+            保存常用检索词，按配置周期自动刷新，也可手动立即刷新。刷新中按钮会显示进度。
           </Paragraph>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openForm}>
@@ -159,7 +220,11 @@ export function TopicPage() {
         <TopicList
           topics={data || []}
           loading={isLoading}
-          onRefresh={(t) => refreshMut.mutate(t)}
+          refreshingIds={refreshingIds}
+          onRefresh={(t) => {
+            if (refreshingIds.includes(t.id)) return;
+            refreshMut.mutate(t);
+          }}
           onDelete={(t) => deleteMut.mutate(t)}
         />
       </div>

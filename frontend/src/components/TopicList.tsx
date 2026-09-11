@@ -1,5 +1,5 @@
 import { Button, Empty, List, Popconfirm, Space, Tag, Typography } from "antd";
-import { DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
+import { DeleteOutlined, LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
 import type { Topic } from "../types";
 
 const { Text } = Typography;
@@ -7,12 +7,20 @@ const { Text } = Typography;
 interface Props {
   topics: Topic[];
   loading?: boolean;
+  refreshingIds?: string[];
   onRefresh: (topic: Topic) => void;
   onDelete: (topic: Topic) => void;
   onOpen?: (topic: Topic) => void;
 }
 
-export function TopicList({ topics, loading, onRefresh, onDelete, onOpen }: Props) {
+export function TopicList({
+  topics,
+  loading,
+  refreshingIds = [],
+  onRefresh,
+  onDelete,
+  onOpen,
+}: Props) {
   if (!topics?.length) {
     return (
       <Empty
@@ -27,50 +35,60 @@ export function TopicList({ topics, loading, onRefresh, onDelete, onOpen }: Prop
     <List
       loading={loading}
       dataSource={topics}
-      renderItem={(topic) => (
-        <List.Item
-          actions={[
-            <Button
-              key="refresh"
-              icon={<ReloadOutlined />}
-              onClick={() => onRefresh(topic)}
-            >
-              刷新
-            </Button>,
-            <Popconfirm
-              key="del"
-              title="删除该主题？"
-              okText="删除"
-              cancelText="取消"
-              onConfirm={() => onDelete(topic)}
-            >
-              <Button danger icon={<DeleteOutlined />} />
-            </Popconfirm>,
-          ]}
-        >
-          <List.Item.Meta
-            title={
-              <Space wrap>
-                <Text strong style={{ color: "var(--ls-ink)" }} onClick={() => onOpen?.(topic)}>
-                  {topic.name}
-                </Text>
-                <Tag bordered={false}>{topic.last_results_count} 篇</Tag>
-              </Space>
-            }
-            description={
-              <Space direction="vertical" size={4}>
-                <Text code style={{ color: "var(--ls-body)" }}>
-                  {topic.query}
-                </Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  数据源：{(topic.sources || []).join(", ") || "默认"} · 更新于{" "}
-                  {new Date(topic.updated_at).toLocaleString()}
-                </Text>
-              </Space>
-            }
-          />
-        </List.Item>
-      )}
+      renderItem={(topic) => {
+        const busy = refreshingIds.includes(topic.id);
+        return (
+          <List.Item
+            actions={[
+              <Button
+                key="refresh"
+                icon={busy ? <LoadingOutlined /> : <ReloadOutlined />}
+                loading={busy}
+                disabled={busy}
+                onClick={() => onRefresh(topic)}
+              >
+                {busy ? "刷新中…" : "刷新"}
+              </Button>,
+              <Popconfirm
+                key="del"
+                title="删除该主题？"
+                okText="删除"
+                cancelText="取消"
+                onConfirm={() => onDelete(topic)}
+              >
+                <Button danger icon={<DeleteOutlined />} disabled={busy} />
+              </Popconfirm>,
+            ]}
+          >
+            <List.Item.Meta
+              title={
+                <Space wrap>
+                  <Text strong style={{ color: "var(--ls-ink)" }} onClick={() => onOpen?.(topic)}>
+                    {topic.name}
+                  </Text>
+                  <Tag bordered={false}>{topic.last_results_count} 篇</Tag>
+                  {busy && (
+                    <Tag color="processing" bordered={false}>
+                      抓取中
+                    </Tag>
+                  )}
+                </Space>
+              }
+              description={
+                <Space direction="vertical" size={4}>
+                  <Text code style={{ color: "var(--ls-body)" }}>
+                    {topic.query}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    数据源：{(topic.sources || []).join(", ") || "默认"} · 更新于{" "}
+                    {new Date(topic.updated_at).toLocaleString()}
+                  </Text>
+                </Space>
+              }
+            />
+          </List.Item>
+        );
+      }}
     />
   );
 }

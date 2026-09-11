@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="LitScope Local",
     description="本地自动化文献查�?Web 应用 �?developed with Xiaomi MIMO (MiMo-X-Pro-Preview)",
-    version="1.1.6",
+    version="1.1.7",
     lifespan=lifespan,
 )
 
