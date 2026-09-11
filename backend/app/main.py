@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -50,8 +50,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="LitScope Local",
-    description="鏈湴鑷姩鍖栨枃鐚煡闃?Web 搴旂敤 鈥?developed with Xiaomi MIMO (MiMo-X-Pro-Preview)",
-    version="1.1.2",
+    description="本地自动化文献查�?Web 应用 �?developed with Xiaomi MIMO (MiMo-X-Pro-Preview)",
+    version="1.1.3",
     lifespan=lifespan,
 )
 
@@ -78,7 +78,7 @@ async def root():
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <title>LitScope Local 路 API</title>
+  <title>LitScope Local · API</title>
   <style>
     body { font-family: Georgia, "Times New Roman", serif; background: #faf9f5; color: #141413;
            max-width: 40rem; margin: 12vh auto; padding: 0 1.5rem; line-height: 1.65; }
@@ -90,14 +90,14 @@ async def root():
 </head>
 <body>
   <h1>LitScope Local</h1>
-  <p>杩欐槸 <strong>API 鏈嶅姟</strong>锛堥粯璁?<code>:8000</code>锛夛紝涓嶆槸瀹屾暣鐣岄潰銆?/p>
+  <p>这是 <strong>API 服务</strong>（默�?<code>:8000</code>），不是完整界面�?/p>
   <ul>
-    <li>鐣岄潰璇锋墦寮€锛?a href="http://localhost:3000">http://localhost:3000</a></li>
-    <li>鍋ュ悍妫€鏌ワ細<a href="/api/health">/api/health</a></li>
-    <li>Swagger锛?a href="/docs">/docs</a></li>
+    <li>界面请打开�?a href="http://localhost:3000">http://localhost:3000</a></li>
+    <li>健康检查：<a href="/api/health">/api/health</a></li>
+    <li>Swagger�?a href="/docs">/docs</a></li>
   </ul>
-  <p class="muted">鑻?3000 鎵撲笉寮€锛岃鍦ㄥ彟涓€缁堢鍚姩鍓嶇锛?code>cd frontend &amp;&amp; npm run dev</code></p>
-  <p class="muted">Developed with Xiaomi MIMO 鈥?MiMo-X-Pro-Preview</p>
+  <p class="muted">�?3000 打不开，请在另一终端启动前端�?code>cd frontend &amp;&amp; npm run dev</code></p>
+  <p class="muted">Developed with Xiaomi MIMO �?MiMo-X-Pro-Preview</p>
 </body>
 </html>
 """
@@ -117,5 +117,5 @@ async def health():
         "database": "sqlite" if settings.database_url.startswith("sqlite") else "external",
         "scheduler": settings.enable_scheduler,
         "refresh_mode": settings.refresh_mode,
-        "built_with": "Xiaomi MIMO 鈥?MiMo-X-Pro-Preview",
+        "built_with": "Xiaomi MIMO �?MiMo-X-Pro-Preview",
     }

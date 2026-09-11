@@ -54,6 +54,7 @@ class PaperSearchHit(PaperBase):
     """Ephemeral search hit with stable synthetic id when not persisted."""
 
     id: UUID
+    relevance_score: Optional[float] = None
 
 
 class TopicBase(BaseModel):
@@ -93,6 +94,8 @@ class SearchRequest(BaseModel):
 
 class QueryTranslationInfo(BaseModel):
     free_text: str = ""
+    api_text: str = ""
+    relevance_terms: List[str] = Field(default_factory=list)
     from_year: Optional[int] = None
     until_year: Optional[int] = None
     parse_ok: bool = True
@@ -104,6 +107,7 @@ class SearchResult(BaseModel):
     total: int
     sources: Dict[str, Any]
     query_translation: Optional[QueryTranslationInfo] = None
+    candidates_before_filter: Optional[int] = None
 
 
 class ExportRequest(BaseModel):

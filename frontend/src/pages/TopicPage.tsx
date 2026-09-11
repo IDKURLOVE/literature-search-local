@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Checkbox, Form, Input, Space, Typography, message } from "antd";
+import { App, Button, Checkbox, Form, Input, Space, Typography } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TopicList } from "../components/TopicList";
@@ -16,6 +16,7 @@ interface TopicFormValues {
 }
 
 export function TopicPage() {
+  const { message } = App.useApp();
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["topics"], queryFn: fetchTopics });
   const [showForm, setShowForm] = useState(false);
@@ -29,31 +30,31 @@ export function TopicPage() {
         sources: values.sources?.length ? values.sources : ["crossref", "openalex"],
       }),
     onSuccess: () => {
-      message.success("主题已创建，正在后台抓取文献");
+      message.success({ content: "主题已创建，正在抓取文献", key: "topic-op", duration: 2 });
       form.resetFields();
       setShowForm(false);
       queryClient.invalidateQueries({ queryKey: ["topics"] });
       queryClient.invalidateQueries({ queryKey: ["papers"] });
     },
-    onError: () => message.error("创建失败，请检查后端是否已启动"),
+    onError: () => message.error({ content: "创建失败，请检查后端是否已启动", key: "topic-op", duration: 3 }),
   });
 
   const refreshMut = useMutation({
     mutationFn: (t: Topic) => refreshTopic(t.id),
     onSuccess: () => {
-      message.success("已开始刷新");
+      message.success({ content: "已开始刷新", key: "topic-op", duration: 2 });
       queryClient.invalidateQueries({ queryKey: ["topics"] });
     },
-    onError: () => message.error("刷新失败"),
+    onError: () => message.error({ content: "刷新失败", key: "topic-op", duration: 2 }),
   });
 
   const deleteMut = useMutation({
     mutationFn: (t: Topic) => deleteTopic(t.id),
     onSuccess: () => {
-      message.success("已删除");
+      message.success({ content: "已删除", key: "topic-op", duration: 2 });
       queryClient.invalidateQueries({ queryKey: ["topics"] });
     },
-    onError: () => message.error("删除失败"),
+    onError: () => message.error({ content: "删除失败", key: "topic-op", duration: 2 }),
   });
 
   const openForm = () => {

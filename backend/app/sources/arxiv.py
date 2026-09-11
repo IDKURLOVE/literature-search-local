@@ -9,7 +9,7 @@ BASE_URL = "https://export.arxiv.org/api/query"
 
 
 def translate_query(request: SearchRequest, translated: TranslatedQuery) -> dict:
-    text = translated.free_text or request.query
+    text = translated.api_text or translated.free_text or request.query
     return {
         "search_query": f"all:{text}",
         "start": request.offset,

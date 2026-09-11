@@ -45,6 +45,13 @@ export function AdvancedSearchHelp() {
                   <Text code>(AU=lecun OR AU=bengio) AND AB=representation</Text>
                 </Text>
               </div>
+              <div>
+                <Text type="secondary">
+                  中文可直接输关键词（如「机器学习 风速预测」），系统会做术语切分与英译扩展，并按相关度过滤跑题结果。
+                  <br />
+                  知网 / 官方 Web of Science 无免费公开 API，本工具不爬取；字段语法与排序逻辑对齐 WOS 检索习惯。
+                </Text>
+              </div>
             </div>
           ),
         },

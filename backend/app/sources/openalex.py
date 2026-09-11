@@ -25,7 +25,7 @@ def abstract_from_inverted(index: Optional[Dict[Any, Any]]) -> Optional[str]:
 def translate_query(request: SearchRequest, translated: TranslatedQuery) -> dict:
     page_size = max(request.limit, 1)
     params = {
-        "search": translated.free_text or request.query,
+        "search": translated.api_text or translated.free_text or request.query,
         "per-page": page_size,
         "page": (request.offset // page_size) + 1,
     }

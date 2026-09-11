@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Checkbox, Empty, Input, Select, Space, Typography, message } from "antd";
+import { App, Button, Checkbox, Empty, Input, Select, Space, Typography } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { PaperCard } from "../components/PaperCard";
@@ -9,6 +9,7 @@ import type { Paper } from "../types";
 const { Title, Paragraph, Text } = Typography;
 
 export function PaperDetailPage() {
+  const { message } = App.useApp();
   const { data, isLoading, refetch } = useQuery({ queryKey: ["papers"], queryFn: fetchPapers });
   const [selected, setSelected] = useState<string[]>([]);
   const [format, setFormat] = useState<"bibtex" | "ris" | "plain">("bibtex");
@@ -24,7 +25,7 @@ export function PaperDetailPage() {
 
   const handleExport = async () => {
     if (!selected.length) {
-      message.warning("请先勾选要导出的文献");
+      message.warning({ content: "请先勾选要导出的文献", key: "lib-msg", duration: 2 });
       return;
     }
     try {
@@ -36,9 +37,9 @@ export function PaperDetailPage() {
       a.download = `litscope-export.${format === "bibtex" ? "bib" : format === "ris" ? "ris" : "txt"}`;
       a.click();
       URL.revokeObjectURL(url);
-      message.success("导出已开始下载");
+      message.success({ content: "导出已开始下载", key: "lib-msg", duration: 2 });
     } catch {
-      message.error("导出失败");
+      message.error({ content: "导出失败", key: "lib-msg", duration: 2 });
     }
   };
 
@@ -47,10 +48,10 @@ export function PaperDetailPage() {
     const tags = tagDrafts[paper.id] ?? paper.tags ?? [];
     try {
       await updatePaper(paper.id, { notes, tags });
-      message.success("已保存标签与笔记");
+      message.success({ content: "已保存标签与笔记", key: "lib-msg", duration: 2 });
       refetch();
     } catch {
-      message.error("保存失败（文献可能尚未入库，请先收藏或通过主题刷新入库）");
+      message.error({ content: "保存失败（文献可能尚未入库）", key: "lib-msg", duration: 3 });
     }
   };
 

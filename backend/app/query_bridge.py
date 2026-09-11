@@ -1,8 +1,8 @@
-"""Bridge WOS AST into source-friendly free text + structured filters."""
-
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
+import re
 
+from app.relevance import api_query_text, extract_terms
 from app.search import BoolOp, FieldCondition, NearOp, Node, QueryParseError, WOSQueryParser
 
 
@@ -18,6 +18,10 @@ class TranslatedQuery:
     doi: Optional[str] = None
     parse_ok: bool = True
     parse_error: Optional[str] = None
+    # Chinese/English keywords used for local relevance ranking
+    relevance_terms: List[str] = field(default_factory=list)
+    # Text sent to academic APIs (expanded)
+    api_text: str = ""
 
 
 def _parse_year_range(value: str) -> tuple[Optional[int], Optional[int]]:
@@ -77,14 +81,21 @@ def _collect_terms(node: Node, out: Dict[str, Set[str]], years: List[tuple[Optio
 
 def translate_wos_query(raw_query: str, extra_filters: Optional[Dict[str, Any]] = None) -> TranslatedQuery:
     extra_filters = extra_filters or {}
-    result = TranslatedQuery(free_text=raw_query.strip())
+    raw = (raw_query or "").strip()
+    result = TranslatedQuery(free_text=raw)
+
+    # Always extract Chinese/English terms for ranking (works for plain keywords too)
+    result.relevance_terms = extract_terms(raw)
+    result.api_text = api_query_text(result.relevance_terms, raw)
 
     try:
-        ast = WOSQueryParser().parse(raw_query)
+        ast = WOSQueryParser().parse(raw)
     except QueryParseError as exc:
-        result.parse_ok = False
-        result.parse_error = str(exc)
-        result.free_text = raw_query.strip()
+        # Plain keywords are valid queries; mark parse_ok=False only for broken field syntax
+        looks_like_field = bool(re.search(r"\b[A-Z]{2}=", raw))
+        result.parse_ok = not looks_like_field
+        result.parse_error = str(exc) if looks_like_field else None
+        result.free_text = result.api_text or raw
         result.from_year = extra_filters.get("from_year")
         result.until_year = extra_filters.get("until_year")
         return result
@@ -123,5 +134,13 @@ def translate_wos_query(raw_query: str, extra_filters: Optional[Dict[str, Any]] 
     free_parts.extend(sorted(buckets["topic"]))
     if result.doi:
         free_parts.append(result.doi)
-    result.free_text = " ".join(dict.fromkeys(p for p in free_parts if p)) or raw_query.strip()
+    structured = " ".join(dict.fromkeys(p for p in free_parts if p))
+    result.free_text = structured or result.api_text or raw
+
+    # Merge structured field terms into relevance set
+    extra = extract_terms(structured)
+    for t in extra:
+        if t not in result.relevance_terms:
+            result.relevance_terms.append(t)
+    result.api_text = api_query_text(result.relevance_terms, result.free_text)
     return result

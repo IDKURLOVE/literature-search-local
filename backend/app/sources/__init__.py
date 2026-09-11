@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 
 from app.models import surname_lower
 from app.query_bridge import TranslatedQuery, translate_wos_query
+from app.relevance import rank_and_filter
 from app.schemas import PaperCreate, SearchRequest
 from app.sources import arxiv, crossref, openalex, pubmed, semantic_scholar
 
@@ -64,8 +65,11 @@ async def search_all(request: SearchRequest) -> Dict[str, Any]:
 
     tasks = []
     selected = [s for s in request.sources if s in SOURCE_MAP]
+    # Fetch extra candidates so local relevance filter has room to cut noise
+    fetch_limit = min(100, max(request.limit * 3, request.limit))
+    fetch_request = request.model_copy(update={"limit": fetch_limit})
     for source in selected:
-        tasks.append(SOURCE_MAP[source](request, translated))
+        tasks.append(SOURCE_MAP[source](fetch_request, translated))
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -79,10 +83,13 @@ async def search_all(request: SearchRequest) -> Dict[str, Any]:
             all_papers.extend(result)
 
     deduped = deduplicate_papers(all_papers)
+    ranked = rank_and_filter(deduped, translated.relevance_terms, request.limit)
+
     hits = []
-    for paper in deduped:
+    for score, paper in ranked:
         payload = paper.model_dump()
         payload["id"] = synthetic_paper_id(paper)
+        payload["relevance_score"] = round(score, 2)
         hits.append(payload)
 
     return {
@@ -91,9 +98,12 @@ async def search_all(request: SearchRequest) -> Dict[str, Any]:
         "sources": source_status,
         "query_translation": {
             "free_text": translated.free_text,
+            "api_text": translated.api_text,
+            "relevance_terms": translated.relevance_terms,
             "from_year": translated.from_year,
             "until_year": translated.until_year,
             "parse_ok": translated.parse_ok,
             "parse_error": translated.parse_error,
         },
+        "candidates_before_filter": len(deduped),
     }

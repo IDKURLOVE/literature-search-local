@@ -9,7 +9,7 @@ ESUMMARY_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
 
 
 def translate_query(request: SearchRequest, translated: TranslatedQuery) -> dict:
-    term = translated.free_text or request.query
+    term = translated.api_text or translated.free_text or request.query
     from_year = translated.from_year or request.filters.get("from_year")
     until_year = translated.until_year or request.filters.get("until_year")
     if from_year or until_year:

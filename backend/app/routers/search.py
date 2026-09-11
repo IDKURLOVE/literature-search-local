@@ -14,4 +14,5 @@ async def search(request: SearchRequest) -> SearchResult:
         total=raw["total"],
         sources=raw["sources"],
         query_translation=raw.get("query_translation"),
+        candidates_before_filter=raw.get("candidates_before_filter"),
     )

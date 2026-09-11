@@ -13,6 +13,10 @@ const queryClient = new QueryClient({
 
 const themeConfig = {
   algorithm: theme.defaultAlgorithm,
+  message: {
+    duration: 2,
+    maxCount: 2,
+  },
   token: {
     colorPrimary: "#cc785c",
     colorLink: "#cc785c",

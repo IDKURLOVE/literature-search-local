@@ -9,11 +9,18 @@ BASE_URL = "https://api.crossref.org/works"
 
 
 def translate_query(request: SearchRequest, translated: TranslatedQuery) -> dict:
+    # Prefer expanded bilingual text; Crossref ranks bibliographic co-occurrence
+    biblio = translated.api_text or translated.free_text or request.query
     params = {
-        "query.bibliographic": translated.free_text or request.query,
+        "query.bibliographic": biblio,
         "rows": request.limit,
         "offset": request.offset,
+        "sort": "score",
+        "order": "desc",
     }
+    # Title-focused queries (TI= or short academic title) also hit query.title
+    if translated.title_terms:
+        params["query.title"] = " ".join(translated.title_terms)
     if settings.crossref_mailto:
         params["mailto"] = settings.crossref_mailto
 
@@ -50,12 +57,13 @@ async def search(request: SearchRequest, translated: TranslatedQuery) -> List[Pa
                 year = candidate
                 break
 
+        abstract = item.get("abstract") or None
         papers.append(
             PaperCreate(
                 doi=doi,
                 title=(item.get("title") or [""])[0] or "Untitled",
                 authors=authors,
-                abstract=item.get("abstract") or None,
+                abstract=abstract,
                 year=year,
                 venue=(item.get("container-title") or [""])[0] or None,
                 publication_type=item.get("type"),

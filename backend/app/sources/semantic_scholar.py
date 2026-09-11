@@ -10,7 +10,7 @@ BASE_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
 
 def translate_query(request: SearchRequest, translated: TranslatedQuery) -> dict:
     params = {
-        "query": translated.free_text or request.query,
+        "query": translated.api_text or translated.free_text or request.query,
         "limit": request.limit,
         "offset": request.offset,
         "fields": "title,authors,abstract,year,venue,citationCount,openAccessPdf,publicationTypes,externalIds",

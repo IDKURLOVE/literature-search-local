@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Divider, message, Space, Typography } from "antd";
+import { Alert, App, Divider, Space, Typography } from "antd";
 import { useMutation } from "@tanstack/react-query";
 import { SearchBox } from "../components/SearchBox";
 import { AdvancedSearchHelp } from "../components/AdvancedSearchHelp";
@@ -11,6 +11,7 @@ import type { Paper } from "../types";
 const { Title, Text } = Typography;
 
 export function HomePage() {
+  const { message } = App.useApp();
   const { query, sources, setQuery, setSources } = useSearchStore();
   const [papers, setPapers] = useState<Paper[]>([]);
   const [sourceStatus, setSourceStatus] = useState<Record<string, unknown>>({});
@@ -32,10 +33,14 @@ export function HomePage() {
     },
     onError: (err) => {
       if ((err as Error).message === "empty") {
-        message.warning("请先输入主题关键词");
+        message.warning({ content: "请先输入主题关键词", key: "search-msg", duration: 2 });
         return;
       }
-      message.error("搜索失败：请检查后端是否已启动，或稍后重试（数据源可能限流）");
+      message.error({
+        content: "搜索失败：后端未启动或数据源限流，请稍后重试",
+        key: "search-msg",
+        duration: 3,
+      });
     },
   });
 
@@ -56,9 +61,9 @@ export function HomePage() {
         open_access_pdf: paper.open_access_pdf,
       }),
     onSuccess: () => {
-      message.success("已收藏到文献库");
+      message.success({ content: "已收藏到文献库", key: "save-msg", duration: 2 });
     },
-    onError: () => message.error("收藏失败"),
+    onError: () => message.error({ content: "收藏失败", key: "save-msg", duration: 2 }),
   });
 
   const saveQueryAsTopic = async () => {
@@ -70,9 +75,9 @@ export function HomePage() {
         query: q,
         sources: sources.length ? sources : DEFAULT_SOURCES,
       });
-      message.success("已保存为研究主题");
+      message.success({ content: "已保存为研究主题", key: "topic-msg", duration: 2 });
     } catch {
-      message.error("保存失败");
+      message.error({ content: "保存失败", key: "topic-msg", duration: 2 });
     }
   };
 
@@ -83,8 +88,8 @@ export function HomePage() {
           检索开放学术源
         </Title>
         <p>
-          直接输入主题关键词，即可并行查询 Crossref、OpenAlex、Semantic Scholar、PubMed、arXiv。
-          结果自动去重，可收藏到文献库，或保存为研究主题定时刷新。
+          直接输入主题关键词（支持中文），并行查询 Crossref、OpenAlex、Semantic Scholar、PubMed、arXiv。
+          结果按相关度排序并过滤跑题文献。可收藏或保存为研究主题。
         </p>
       </section>
 
@@ -107,7 +112,7 @@ export function HomePage() {
           <Divider style={{ borderColor: "var(--ls-hairline)" }}>
             <Space>
               <Text>
-                找到 <Text strong>{papers.length}</Text> 条结果
+                找到 <Text strong>{papers.length}</Text> 条相关结果
               </Text>
               <a onClick={saveQueryAsTopic}>保存为研究主题</a>
             </Space>
@@ -119,11 +124,12 @@ export function HomePage() {
               return (
                 <Alert
                   key={name}
-                  type="warning"
+                  type="info"
                   showIcon
+                  closable
                   style={{ marginBottom: 8 }}
-                  message={`${name} 暂不可用`}
-                  description={s.error || "请求失败或被限流"}
+                  message={`${name} 本次未返回（限流或网络）`}
+                  description="其它数据源结果仍可用；可稍后重试或配置 API Key。"
                 />
               );
             }
@@ -132,7 +138,13 @@ export function HomePage() {
 
           <div className="ls-stack">
             {papers.length === 0 ? (
-              <div className="ls-empty">没有匹配结果。换个关键词试试，或多选几个数据源。</div>
+              <div className="ls-empty">
+                没有足够相关的文献。可换个更具体的关键词（含核心对象，如「风速」），或多选数据源。
+                <br />
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  说明：知网 / 官方 Web of Science 无免费公开 API，本工具不对接；已用类 WOS 语法 + 相关度过滤逼近。
+                </Text>
+              </div>
             ) : (
               papers.map((paper) => (
                 <PaperCard
