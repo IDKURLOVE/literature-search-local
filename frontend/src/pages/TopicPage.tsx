@@ -1,14 +1,5 @@
-import { useEffect, useState } from "react";
-import {
-  App as AntApp,
-  Button,
-  Form,
-  Input,
-  Modal,
-  Select,
-  Typography,
-  message,
-} from "antd";
+import { useState } from "react";
+import { Button, Checkbox, Form, Input, Space, Typography, message } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TopicList } from "../components/TopicList";
@@ -24,14 +15,10 @@ interface TopicFormValues {
   sources: string[];
 }
 
-interface CreateModalProps {
-  open: boolean;
-  onClose: () => void;
-  onCreated: () => void;
-}
-
-/** Must mount only while open so Form.useForm binds to live inputs (no destroyOnClose clash). */
-function TopicCreateModal({ open, onClose, onCreated }: CreateModalProps) {
+export function TopicPage() {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ["topics"], queryFn: fetchTopics });
+  const [showForm, setShowForm] = useState(false);
   const [form] = Form.useForm<TopicFormValues>();
 
   const createMut = useMutation({
@@ -44,71 +31,12 @@ function TopicCreateModal({ open, onClose, onCreated }: CreateModalProps) {
     onSuccess: () => {
       message.success("主题已创建，正在后台抓取文献");
       form.resetFields();
-      onCreated();
-      onClose();
+      setShowForm(false);
+      queryClient.invalidateQueries({ queryKey: ["topics"] });
+      queryClient.invalidateQueries({ queryKey: ["papers"] });
     },
     onError: () => message.error("创建失败，请检查后端是否已启动"),
   });
-
-  useEffect(() => {
-    if (open) {
-      form.resetFields();
-    }
-  }, [open, form]);
-
-  return (
-    <Modal
-      title="新建研究主题"
-      open={open}
-      onOk={() => form.submit()}
-      onCancel={onClose}
-      okText="创建并抓取"
-      cancelText="取消"
-      confirmLoading={createMut.isPending}
-      forceRender
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          name: "",
-          query: "",
-          sources: ["crossref", "openalex"],
-        }}
-        onFinish={(values) => createMut.mutate(values)}
-        clearOnDestroy
-      >
-        <Form.Item
-          name="name"
-          label="主题名称"
-          rules={[{ required: true, message: "请输入名称" }]}
-        >
-          <Input placeholder="例如：LLM 综述" maxLength={80} autoFocus />
-        </Form.Item>
-        <Form.Item
-          name="query"
-          label="检索词"
-          rules={[{ required: true, message: "请输入关键词或检索式" }]}
-          extra="直接输关键词即可，例如 large language model"
-        >
-          <Input.TextArea rows={2} placeholder="large language model" />
-        </Form.Item>
-        <Form.Item name="sources" label="数据源">
-          <Select
-            mode="multiple"
-            options={AVAILABLE_SOURCES.map((s) => ({ value: s.value, label: s.label }))}
-            placeholder="Crossref + OpenAlex"
-          />
-        </Form.Item>
-      </Form>
-    </Modal>
-  );
-}
-
-export function TopicPage() {
-  const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["topics"], queryFn: fetchTopics });
-  const [open, setOpen] = useState(false);
 
   const refreshMut = useMutation({
     mutationFn: (t: Topic) => refreshTopic(t.id),
@@ -128,8 +56,15 @@ export function TopicPage() {
     onError: () => message.error("删除失败"),
   });
 
+  const openForm = () => {
+    setShowForm(true);
+    requestAnimationFrame(() => {
+      document.getElementById("topic-name-input")?.focus();
+    });
+  };
+
   return (
-    <AntApp>
+    <div>
       <section
         className="ls-hero"
         style={{
@@ -155,10 +90,63 @@ export function TopicPage() {
             保存常用检索词，按配置周期自动刷新，也可手动立即刷新。
           </Paragraph>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={openForm}>
           新建主题
         </Button>
       </section>
+
+      {showForm && (
+        <div className="ls-panel" style={{ marginBottom: 16 }}>
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={{ name: "", query: "", sources: ["crossref", "openalex"] }}
+            onFinish={(values) => createMut.mutate(values)}
+            style={{ maxWidth: 560 }}
+          >
+            <Form.Item
+              name="name"
+              label="主题名称"
+              rules={[{ required: true, message: "请输入名称" }]}
+            >
+              <Input id="topic-name-input" placeholder="例如：LLM 综述" maxLength={80} />
+            </Form.Item>
+            <Form.Item
+              name="query"
+              label="检索词"
+              rules={[{ required: true, message: "请输入关键词或检索式" }]}
+              extra="直接输关键词即可，例如 large language model"
+            >
+              <Input.TextArea rows={2} placeholder="large language model" />
+            </Form.Item>
+            <Form.Item
+              name="sources"
+              label="数据源"
+              rules={[
+                {
+                  validator: (_, v: string[]) =>
+                    !v || v.length
+                      ? Promise.resolve()
+                      : Promise.reject(new Error("至少选择一个数据源")),
+                },
+              ]}
+            >
+              <Checkbox.Group
+                options={AVAILABLE_SOURCES.map((s) => ({
+                  value: s.value,
+                  label: s.label,
+                }))}
+              />
+            </Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" loading={createMut.isPending}>
+                创建并抓取
+              </Button>
+              <Button onClick={() => setShowForm(false)}>取消</Button>
+            </Space>
+          </Form>
+        </div>
+      )}
 
       <div className="ls-panel">
         <TopicList
@@ -168,17 +156,6 @@ export function TopicPage() {
           onDelete={(t) => deleteMut.mutate(t)}
         />
       </div>
-
-      {open && (
-        <TopicCreateModal
-          open={open}
-          onClose={() => setOpen(false)}
-          onCreated={() => {
-            queryClient.invalidateQueries({ queryKey: ["topics"] });
-            queryClient.invalidateQueries({ queryKey: ["papers"] });
-          }}
-        />
-      )}
-    </AntApp>
+    </div>
   );
 }

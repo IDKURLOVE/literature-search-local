@@ -1,4 +1,4 @@
-import { Input, Select, Button, Space, Tooltip } from "antd";
+import { Input, Button, Space, Tooltip, Checkbox } from "antd";
 import { QuestionCircleOutlined, SearchOutlined } from "@ant-design/icons";
 import { AVAILABLE_SOURCES } from "../types";
 
@@ -19,6 +19,8 @@ export function SearchBox({
   onSourcesChange,
   onSearch,
 }: Props) {
+  const selected = sources?.length ? sources : ["crossref", "openalex"];
+
   return (
     <div className="ls-stack">
       <Space.Compact style={{ width: "100%" }}>
@@ -47,16 +49,15 @@ export function SearchBox({
         </Button>
       </Space.Compact>
 
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <span style={{ color: "var(--ls-muted)", fontSize: 13 }}>数据源</span>
-        <Select
-          mode="multiple"
-          value={sources}
-          onChange={onSourcesChange}
-          style={{ minWidth: 280, maxWidth: "100%" }}
-          options={AVAILABLE_SOURCES.map((s) => ({ value: s.value, label: s.label }))}
-          placeholder="默认 Crossref + OpenAlex"
-          maxTagCount="responsive"
+      <div className="ls-source-row">
+        <span className="ls-source-label">数据源</span>
+        <Checkbox.Group
+          value={selected}
+          onChange={(values) => onSourcesChange(values as string[])}
+          options={AVAILABLE_SOURCES.map((s) => ({
+            value: s.value,
+            label: s.label,
+          }))}
         />
       </div>
     </div>

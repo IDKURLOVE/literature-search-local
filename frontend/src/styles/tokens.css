@@ -172,6 +172,24 @@ body {
   text-align: center;
 }
 
+.ls-source-row {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.ls-source-label {
+  color: var(--ls-muted);
+  font-size: 13px;
+  line-height: 22px;
+  min-width: 3em;
+}
+
+.ls-source-row .ant-checkbox-wrapper {
+  margin-inline-end: 4px;
+}
+
 .ls-empty {
   text-align: center;
   padding: 48px 16px;
