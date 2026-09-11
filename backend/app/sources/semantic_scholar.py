@@ -1,10 +1,9 @@
 from typing import List
 
-import httpx
-
 from app.config import settings
 from app.query_bridge import TranslatedQuery
 from app.schemas import Author, PaperCreate, PaperUrls, SearchRequest
+from app.sources.http_util import get_json
 
 BASE_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
 
@@ -35,11 +34,7 @@ async def search(request: SearchRequest, translated: TranslatedQuery) -> List[Pa
     headers = {}
     if settings.semantic_scholar_api_key:
         headers["x-api-key"] = settings.semantic_scholar_api_key
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(BASE_URL, params=params, headers=headers)
-        resp.raise_for_status()
-        data = resp.json()
+    data = await get_json(BASE_URL, params=params, headers=headers)
 
     papers: List[PaperCreate] = []
     for item in data.get("data", []) or []:

@@ -1,9 +1,8 @@
 from typing import List
 
-import httpx
-
 from app.query_bridge import TranslatedQuery
 from app.schemas import Author, PaperCreate, PaperUrls, SearchRequest
+from app.sources.http_util import get_json
 
 ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 ESUMMARY_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
@@ -28,20 +27,15 @@ def translate_query(request: SearchRequest, translated: TranslatedQuery) -> dict
 
 async def search(request: SearchRequest, translated: TranslatedQuery) -> List[PaperCreate]:
     params = translate_query(request, translated)
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        search_resp = await client.get(ESEARCH_URL, params=params)
-        search_resp.raise_for_status()
-        search_data = search_resp.json()
-        ids = (search_data.get("esearchresult") or {}).get("idlist") or []
-        if not ids:
-            return []
+    search_data = await get_json(ESEARCH_URL, params=params)
+    ids = (search_data.get("esearchresult") or {}).get("idlist") or []
+    if not ids:
+        return []
 
-        summary_resp = await client.get(
-            ESummary_URL,
-            params={"db": "pubmed", "id": ",".join(ids), "retmode": "json"},
-        )
-        summary_resp.raise_for_status()
-        summary_data = summary_resp.json()
+    summary_data = await get_json(
+        ESummary_URL,
+        params={"db": "pubmed", "id": ",".join(ids), "retmode": "json"},
+    )
 
     papers: List[PaperCreate] = []
     result = summary_data.get("result") or {}

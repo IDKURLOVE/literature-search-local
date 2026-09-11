@@ -1,10 +1,9 @@
 from typing import List
 from xml.etree import ElementTree as ET
 
-import httpx
-
 from app.query_bridge import TranslatedQuery
 from app.schemas import Author, PaperCreate, PaperUrls, SearchRequest
+from app.sources.http_util import get_text
 
 BASE_URL = "https://export.arxiv.org/api/query"
 
@@ -22,10 +21,7 @@ def translate_query(request: SearchRequest, translated: TranslatedQuery) -> dict
 
 async def search(request: SearchRequest, translated: TranslatedQuery) -> List[PaperCreate]:
     params = translate_query(request, translated)
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(BASE_URL, params=params)
-        resp.raise_for_status()
-        xml_data = resp.text
+    xml_data = await get_text(BASE_URL, params=params)
 
     ns = {"atom": "http://www.w3.org/2005/Atom"}
     root = ET.fromstring(xml_data)

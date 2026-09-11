@@ -1,9 +1,9 @@
 from typing import Any, Dict, List, Optional
 
-import httpx
-
+from app.config import settings
 from app.query_bridge import TranslatedQuery
 from app.schemas import Author, PaperCreate, PaperUrls, SearchRequest
+from app.sources.http_util import get_json
 
 BASE_URL = "https://api.openalex.org/works"
 
@@ -40,15 +40,14 @@ def translate_query(request: SearchRequest, translated: TranslatedQuery) -> dict
         filters.append("is_oa:true")
     if filters:
         params["filter"] = ",".join(filters)
+    if settings.crossref_mailto:
+        params["mailto"] = settings.crossref_mailto
     return params
 
 
 async def search(request: SearchRequest, translated: TranslatedQuery) -> List[PaperCreate]:
     params = translate_query(request, translated)
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(BASE_URL, params=params)
-        resp.raise_for_status()
-        data = resp.json()
+    data = await get_json(BASE_URL, params=params)
 
     papers: List[PaperCreate] = []
     for item in data.get("results", []):
