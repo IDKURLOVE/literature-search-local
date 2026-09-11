@@ -3,7 +3,7 @@ feature: litscope-local
 status: delivered
 updated: 2026-09-11
 branch: master
-commits: pending
+commits: 5ff89ab001970e9ca131dbf42ed077b73c5583e4..5ff89ab001970e9ca131dbf42ed077b73c5583e4
 ---
 
 # LitScope Local 文献检索应用
@@ -89,4 +89,4 @@ commits: pending
 - [x] T4: 后端单测 — acceptance: pytest 全绿 (covers: S2)
 - [x] T5: 前端 DESIGN token + 页面/组件 — acceptance: tsc + vite build 通过 (covers: S2)
 - [x] T6: Docker/Compose/.env/README（含 Xiaomi MIMO 标注） — acceptance: 文件齐全可部署 (covers: S1; S2)
-- [ ] T7: 推送 GitHub 公开仓库 literature-search-local — acceptance: main/master 可见且含署名 (covers: S1)
+- [x] T7: 推送 GitHub 公开仓库 literature-search-local — acceptance: main/master 可见且含署名 (covers: S1)
