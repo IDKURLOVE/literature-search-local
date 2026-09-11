@@ -3,8 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Table, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Table, Text, Uuid
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -12,15 +11,15 @@ from app.database import Base
 topic_paper_association = Table(
     "topic_papers",
     Base.metadata,
-    Column("topic_id", UUID(as_uuid=True), ForeignKey("topics.id"), primary_key=True),
-    Column("paper_id", UUID(as_uuid=True), ForeignKey("papers.id"), primary_key=True),
+    Column("topic_id", Uuid(as_uuid=True), ForeignKey("topics.id"), primary_key=True),
+    Column("paper_id", Uuid(as_uuid=True), ForeignKey("papers.id"), primary_key=True),
 )
 
 
 class Topic(Base):
     __tablename__ = "topics"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
     query = Column(Text, nullable=False)
     sources = Column(JSON, default=list)
@@ -35,7 +34,7 @@ class Topic(Base):
 class Paper(Base):
     __tablename__ = "papers"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     doi = Column(String(255), nullable=True, index=True)
     title = Column(Text, nullable=False)
     authors = Column(JSON, default=list)

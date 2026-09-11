@@ -6,11 +6,16 @@ from sqlalchemy.pool import NullPool
 
 from app.config import settings
 
+_connect_args = {}
+if settings.database_url.startswith("sqlite"):
+    _connect_args = {"check_same_thread": False}
+
 engine = create_async_engine(
     settings.database_url,
     future=True,
     echo=False,
     poolclass=NullPool,
+    connect_args=_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(

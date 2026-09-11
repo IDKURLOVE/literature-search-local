@@ -18,6 +18,20 @@ async def _ensure_schema() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
+async def refresh_topic_async(topic_id: str) -> None:
+    """In-process refresh (native deploy / fallback when Celery is unavailable)."""
+    await _refresh_topic(topic_id)
+
+
+async def refresh_all_topics_async() -> None:
+    await _ensure_schema()
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(Topic.id))
+        topic_ids = [row[0] for row in result.all()]
+    for topic_id in topic_ids:
+        await _refresh_topic(str(topic_id))
+
+
 @celery_app.task(name="app.tasks.refresh_topic")
 def refresh_topic(topic_id: str) -> None:
     asyncio.run(_refresh_topic(topic_id))
@@ -25,7 +39,20 @@ def refresh_topic(topic_id: str) -> None:
 
 @celery_app.task(name="app.tasks.refresh_all_topics")
 def refresh_all_topics() -> None:
-    asyncio.run(_refresh_all_topics())
+    asyncio.run(refresh_all_topics_async())
+
+
+def queue_refresh(topic_id: str) -> str:
+    """Queue refresh via Celery when allowed; return mode used."""
+    from app.config import settings
+
+    if settings.refresh_mode == "inline":
+        return "inline-required"
+    try:
+        refresh_topic.delay(str(topic_id))
+        return "celery"
+    except Exception:
+        return "inline-required"
 
 
 async def _refresh_topic(topic_id: str) -> None:
@@ -84,12 +111,3 @@ async def _get_or_create_paper(db, p_data: PaperCreate) -> Paper:
     db.add(paper)
     await db.flush()
     return paper
-
-
-async def _refresh_all_topics() -> None:
-    await _ensure_schema()
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(Topic.id))
-        topic_ids = [row[0] for row in result.all()]
-        for topic_id in topic_ids:
-            refresh_topic.delay(str(topic_id))

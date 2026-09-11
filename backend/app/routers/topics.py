@@ -1,29 +1,34 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.models import Topic
 from app.schemas import TopicCreate, TopicOut, TopicUpdate
-from app.tasks import refresh_topic
+from app.tasks import queue_refresh, refresh_topic_async
 
 router = APIRouter()
 
 
+def _schedule_refresh(topic_id: str, background: BackgroundTasks) -> str:
+    mode = queue_refresh(topic_id)
+    if mode == "celery":
+        return "queued-celery"
+    background.add_task(refresh_topic_async, topic_id)
+    return "queued-inline"
+
+
 @router.post("/", response_model=TopicOut)
-async def create_topic(topic: TopicCreate, db: AsyncSession = Depends(get_db)):
+async def create_topic(topic: TopicCreate, background: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     db_topic = Topic(**topic.model_dump())
     db.add(db_topic)
     await db.commit()
     await db.refresh(db_topic)
-    try:
-        refresh_topic.delay(str(db_topic.id))
-    except Exception:
-        # Redis/Celery may be unavailable in local unit tests
-        pass
+    _schedule_refresh(str(db_topic.id), background)
     return db_topic
 
 
@@ -64,9 +69,10 @@ async def delete_topic(topic_id: UUID, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{topic_id}/refresh")
-async def refresh_topic_now(topic_id: UUID):
-    try:
-        refresh_topic.delay(str(topic_id))
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Queue unavailable: {exc}") from exc
-    return {"message": "Refresh queued"}
+async def refresh_topic_now(topic_id: UUID, background: BackgroundTasks):
+    mode = _schedule_refresh(str(topic_id), background)
+    return {
+        "message": "Refresh queued",
+        "mode": mode,
+        "refresh_mode_setting": settings.refresh_mode,
+    }
