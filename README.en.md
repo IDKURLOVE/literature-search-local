@@ -1,39 +1,39 @@
 # LitScope Local
 
-Local literature aggregation search and research-topic manager: run Web-of-Science-style queries across open academic APIs, save queries as research topics with automatic refresh, then favorite papers, tag them, write notes, and export citations.
+**English** · [中文](./README.md)
 
-> **Attribution**: This project was developed with **Xiaomi MIMO — MiMo-X-Pro-Preview**.
+Local literature aggregation search and topic tracking: query multiple open academic sources with Web of Science–style syntax, save searches as research topics with scheduled refresh, then favorite papers, tag them, write notes, and export citations.
 
-**Default deployment is native (SQLite + in-process scheduler). Docker, PostgreSQL, and Redis are not required.**
+> **Credit**: Built with assistance from **Xiaomi MIMO — MiMo-X-Pro-Preview**.
+
+**Default deploy mode: native (SQLite + in-process scheduler). No Docker, Postgres, or Redis required.**
 
 | | |
 |---|---|
 | Backend | Python 3.11+ / FastAPI / SQLAlchemy 2 |
 | Frontend | Node.js 18+ / React 18 / Vite / Ant Design 5 |
-| Storage | SQLite by default (PostgreSQL optional) |
+| Data | SQLite by default (PostgreSQL optional) |
 | Sources | Crossref · OpenAlex · Semantic Scholar · PubMed · arXiv |
-| Users | Single-user, no login (localhost / private network only) |
-
-中文文档：[README.md](./README.md)
+| Users | Single-user, no login — local / LAN only |
 
 ---
 
-## Table of contents
+## Contents
 
 1. [Quick start for newcomers](#1-quick-start-for-newcomers)
 2. [Requirements](#2-requirements)
-3. [Install and run (recommended)](#3-install-and-run-recommended)
-4. [Manual step-by-step setup](#4-manual-step-by-step-setup)
+3. [Install & run (recommended)](#3-install--run-recommended)
+4. [Manual step-by-step](#4-manual-step-by-step)
 5. [Environment variables](#5-environment-variables)
-6. [How to use the product](#6-how-to-use-the-product)
+6. [How to use the app](#6-how-to-use-the-app)
 7. [Query syntax cheat sheet](#7-query-syntax-cheat-sheet)
 8. [API examples](#8-api-examples)
 9. [Optional: Docker Compose](#9-optional-docker-compose)
 10. [Optional: PostgreSQL](#10-optional-postgresql)
-11. [Tests and smoke checks](#11-tests-and-smoke-checks)
+11. [Tests & self-check](#11-tests--self-check)
 12. [Project layout](#12-project-layout)
 13. [FAQ / troubleshooting](#13-faq--troubleshooting)
-14. [Security and limitations](#14-security-and-limitations)
+14. [Security & limitations](#14-security--limitations)
 15. [Contributing](#15-contributing)
 16. [License](#16-license)
 
@@ -41,20 +41,20 @@ Local literature aggregation search and research-topic manager: run Web-of-Scien
 
 ## 1. Quick start for newcomers
 
-Six steps (same idea on Windows / macOS / Linux):
+Six steps (Windows / macOS / Linux):
 
-1. **Install tooling**: Python 3.11+, Node.js 18+, Git  
-2. **Clone the repo**
-3. **Copy config**: `.env.example` → `.env` (set `CROSSREF_MAILTO` at minimum)
-4. **Install deps**: backend `pip install -r requirements.txt`, frontend `npm install`
-5. **Start**: uvicorn + vite (or the Windows one-shot script)
-6. **Open** <http://localhost:3000>, type a sample query, click **Search**
+1. **Install** Python 3.11+, Node.js 18+, Git  
+2. **Clone** this repository  
+3. **Copy config**: `.env.example` → `.env` (set `CROSSREF_MAILTO` at minimum)  
+4. **Install deps**: backend `pip install -r requirements.txt`, frontend `npm install`  
+5. **Start**: backend uvicorn + frontend vite (or the Windows one-shot script)  
+6. **Open** <http://localhost:3000>, enter an example query, click **Search**
 
 Health check:
 
 ```bash
 curl http://127.0.0.1:8000/api/health
-# expect e.g. {"status":"ok","database":"sqlite",...}
+# expect: {"status":"ok","database":"sqlite",...}
 ```
 
 ---
@@ -70,16 +70,13 @@ curl http://127.0.0.1:8000/api/health
 
 Optional:
 
-- **Docker + Compose** only if you want containers  
-- **PostgreSQL 14+** only if you do not want SQLite  
-- Outbound HTTPS access to academic APIs  
-
-> On Windows, if `python` is missing, try `py -V`.  
-> Corporate networks may cause timeouts or HTTP 429 — see [FAQ](#13-faq--troubleshooting).
+- **Docker + Compose** — only for the container path  
+- **PostgreSQL 14+** — only if you skip SQLite  
+- Outbound internet access to academic APIs  
 
 ---
 
-## 3. Install and run (recommended)
+## 3. Install & run (recommended)
 
 ### 3.1 Clone
 
@@ -104,23 +101,23 @@ cp .env.example .env
 nano .env
 ```
 
-**Change at least this line** (use your real email; Crossref recommends a mailto to reduce rate limits):
+**Minimum change** (use your real email — Crossref recommends a `mailto` to reduce rate limits):
 
 ```env
 CROSSREF_MAILTO=you@example.com
 ```
 
-Everything else can stay default (SQLite + topic refresh every 6 hours in-process).
+Defaults: SQLite + in-process refresh every 6 hours.
 
-### 3.3 One-shot start on Windows
+### 3.3 Windows one-shot
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\start-local.ps1
 ```
 
-The script creates a backend venv, installs deps, starts API on 8000, and starts the frontend on 3000.
+This creates the backend venv, installs deps, starts API on **8000** and frontend on **3000**.
 
-### 3.4 Start on macOS / Linux
+### 3.4 macOS / Linux
 
 ```bash
 # Terminal A: backend
@@ -140,35 +137,32 @@ npm install
 npm run dev
 ```
 
-### 3.5 Open the UI
+### 3.5 URLs
 
 | URL | Purpose |
 |---|---|
-| <http://localhost:3000> | App (search / topics / library) |
-| <http://127.0.0.1:8000/docs> | Swagger API docs |
-| <http://127.0.0.1:8000/api/health> | Health check |
+| <http://localhost:3000> | UI (Search / Topics / Library) |
+| <http://127.0.0.1:8000/docs> | Swagger |
+| <http://127.0.0.1:8000/api/health> | Health |
 
 ---
 
-## 4. Manual step-by-step setup
+## 4. Manual step-by-step
 
 ### 4.1 Backend
 
 ```bash
 cd backend
 python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
+# Windows: .venv\Scripts\activate
+# macOS/Linux:
 source .venv/bin/activate
-
 pip install -r requirements.txt
-pytest -q          # optional: expect 15 passed
+pytest -q
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-First boot creates `backend/litscope.db` and tables automatically.
+First start creates `backend/litscope.db` and tables automatically.
 
 ### 4.2 Frontend
 
@@ -178,7 +172,7 @@ npm install
 npm run dev
 ```
 
-Dev server defaults to <http://localhost:3000> and proxies `/api` to `http://localhost:8000` (see `frontend/vite.config.ts`).
+Dev server defaults to <http://localhost:3000> and proxies `/api` → `http://localhost:8000`.
 
 ### 4.3 Production frontend build (optional)
 
@@ -192,59 +186,58 @@ npm run build
 
 ## 5. Environment variables
 
-See [`.env.example`](.env.example) for the full template.
+See [`.env.example`](.env.example).
 
-| Variable | Default | Required | Notes |
+| Variable | Default | Required | Description |
 |---|---|---|---|
-| `DATABASE_URL` | SQLite file under `backend/` | No | Database URL |
+| `DATABASE_URL` | SQLite file path | No | DB URL |
 | `ENABLE_SCHEDULER` | `true` | No | In-process topic refresh |
-| `SCHEDULER_INTERVAL_HOURS` | `6` | No | Refresh interval (hours, min 1) |
-| `REFRESH_MODE` | `auto` | No | `inline` = never Celery; `auto` = try Celery then fallback |
-| `CROSSREF_MAILTO` | empty | **Strongly recommended** | Polite pool email for Crossref/OpenAlex |
-| `SEMANTIC_SCHOLAR_API_KEY` | empty | No | Avoids harsh 429s on S2 |
+| `SCHEDULER_INTERVAL_HOURS` | `6` | No | Refresh interval (min 1) |
+| `REFRESH_MODE` | `auto` | No | `inline` = never Celery; `auto` = Celery with inline fallback |
+| `CROSSREF_MAILTO` | empty | **Strongly recommended** | Polite-pool email for Crossref/OpenAlex |
+| `SEMANTIC_SCHOLAR_API_KEY` | empty | No | Optional S2 key (avoids many 429s) |
 | `CORS_ORIGINS` | `http://localhost:3000,...` | No | Comma-separated allowed origins |
 
 Docker/Celery-only vars (ignore for native mode): `POSTGRES_*`, `REDIS_PORT`, `CELERY_*`, `TOPIC_REFRESH_CRONTAB`, `BACKEND_PORT`, `FRONTEND_PORT`.
 
 ---
 
-## 6. How to use the product
+## 6. How to use the app
 
 ### 6.1 Search
 
-1. Open the home page  
-2. Enter a query, for example:
+1. On the home page, enter a query, e.g.
 
    ```text
    TI="large language model" AND PY=2023-2024
    ```
 
-3. Select sources (at least one; defaults are Crossref + OpenAlex)  
-4. Click **Search**  
-5. Use **DOI / Source / PDF** links; click **Save** to store into the local library  
+2. Select sources (at least one; default Crossref + OpenAlex)  
+3. Click **Search**  
+4. Open **DOI / Source / PDF** from each card; click **Save** to store into the library  
 
 ### 6.2 Research topics
 
-- Click **Save as research topic** on the result divider to persist the current query  
-- On the **Topics** page, refresh or delete topics manually  
-- With `ENABLE_SCHEDULER=true`, all topics refresh on the configured interval  
+- Click **Save as research topic** under the result count to persist the current query  
+- On **Topics**, refresh or delete manually  
+- With `ENABLE_SCHEDULER=true`, the process refreshes all topics on an interval  
 
 ### 6.3 Library
 
-- Favorited papers and topic-refreshed papers appear under **Library**  
+- Favorited papers and topic-refresh papers appear under **Library**  
 - Edit **tags** and **notes**, then **Save tags & notes**  
-- Multi-select → choose BibTeX / RIS / Plain Text → **Export**  
+- Select papers → choose BibTeX / RIS / Plain Text → **Export**  
 
 ---
 
 ## 7. Query syntax cheat sheet
 
-| Tag | Field | Example |
+| Tag | Meaning | Example |
 |---|---|---|
 | `TI=` | Title | `TI=transformer` |
 | `AU=` | Author | `AU=lecun` |
 | `AB=` | Abstract | `AB=representation` |
-| `SO=` | Source / journal | `SO=nature` |
+| `SO=` | Source / venue | `SO=nature` |
 | `PY=` | Year or range | `PY=2023` or `PY=2020-2024` |
 | `DO=` | DOI | `DO=10.1038/xxx` |
 | `TS=` | Topic | `TS=graph neural network` |
@@ -255,13 +248,13 @@ Operators:
 
 - `AND` / `OR` / `NOT`
 - Parentheses: `(AU=lecun OR AU=bengio) AND PY=2018-2024`
-- Phrases: `TI="attention is all you need"`
+- Phrases in double quotes: `TI="attention is all you need"`
 - Proximity: `TI=graph NEAR/3 neural` (terms are collected; deep proximity filtering is simplified)
 
 Notes:
 
-- No space between the field tag and `=` (`TI=` OK, `TI =` bad)  
-- Crossref/OpenAlex handle Chinese queries poorly — prefer English keywords  
+- No space between the field tag and `=` (`TI=` OK, `TI =` not OK)  
+- Chinese queries work poorly on Crossref/OpenAlex; prefer English keywords  
 
 ---
 
@@ -275,7 +268,7 @@ Base URL: `http://127.0.0.1:8000`
 curl http://127.0.0.1:8000/api/health
 ```
 
-### Aggregate search
+### Aggregated search
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/search/ \
@@ -287,7 +280,7 @@ curl -X POST http://127.0.0.1:8000/api/search/ \
   }'
 ```
 
-`sources` reports per-source `ok/error`. `query_translation` shows extracted years and free text.
+`sources` reports `ok`/`error` per provider; `query_translation` shows parsed years and free text.
 
 ### Create a topic
 
@@ -307,14 +300,14 @@ curl -X POST http://127.0.0.1:8000/api/topics/ \
 curl -X POST http://127.0.0.1:8000/api/topics/<topic_id>/refresh
 ```
 
-### Library list / update tags & notes
+### Library & notes
 
 ```bash
 curl http://127.0.0.1:8000/api/papers/
 
 curl -X PUT http://127.0.0.1:8000/api/papers/<paper_id> \
   -H "Content-Type: application/json" \
-  -d '{"tags":["survey","llm"],"notes":"Read section 3 carefully"}'
+  -d '{"tags":["survey","llm"],"notes":"Deep-read section 3"}'
 ```
 
 ### Export BibTeX
@@ -329,7 +322,7 @@ curl -X POST http://127.0.0.1:8000/api/export/ \
 
 ## 9. Optional: Docker Compose
 
-**Only if Docker is already installed.** Prefer section 3 otherwise.
+**Only if Docker Engine/Desktop + Compose is already installed.** Native mode (section 3) is preferred.
 
 ```bash
 cp .env.example .env
@@ -339,18 +332,11 @@ docker compose up -d --build
 
 | Service | Host port (default) | Role |
 |---|---|---|
-| frontend | 3000 → container 80 | nginx static + `/api` proxy |
+| frontend | 3000 → 80 | nginx static + `/api` proxy |
 | backend | 8000 | FastAPI |
 | worker | — | Celery worker + beat |
 | db | 5432 | Postgres 16 (pgvector image) |
 | redis | 6379 | broker/cache |
-
-```bash
-docker compose logs -f backend
-docker compose down
-```
-
-> Compose files are kept as an optional path. The current maintainer environment does not run Docker; prefer native mode if anything fails.
 
 ---
 
@@ -362,32 +348,25 @@ ENABLE_SCHEDULER=true
 REFRESH_MODE=inline
 ```
 
-`asyncpg` is already in `requirements.txt`. Tables are created on first boot via `create_all`.
+`asyncpg` is already in `requirements.txt`. Tables are created on first start.
 
 ---
 
-## 11. Tests and smoke checks
+## 11. Tests & self-check
 
 ```bash
-# backend unit tests
 cd backend
 pip install -r requirements.txt
 pytest -q
 # expect: 15 passed
 
-# frontend typecheck + build
 cd ../frontend
 npm install
 npm run build
 
-# live academic API smoke (network required; may 429)
 cd ..
 python scripts/live_search_smoke.py
 python scripts/probe_apis.py
-```
-
-```bash
-curl http://127.0.0.1:8000/api/health
 ```
 
 ---
@@ -396,108 +375,80 @@ curl http://127.0.0.1:8000/api/health
 
 ```text
 literature-search-local/
-├── backend/
-│   ├── app/
-│   │   ├── main.py            # FastAPI + in-process scheduler
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   ├── models.py          # Topic / Paper
-│   │   ├── schemas.py
-│   │   ├── search.py          # WOS parser
-│   │   ├── query_bridge.py
-│   │   ├── tasks.py           # refresh (Celery or inline)
-│   │   ├── routers/
-│   │   └── sources/           # five adapters + polite HTTP client
-│   ├── tests/
-│   └── requirements.txt
-├── frontend/src/
-├── scripts/start-local.ps1
-├── docs/compose/spec/
-├── docker-compose.yml         # optional
-├── CONTRIBUTING.md
+├── backend/app/          # FastAPI, WOS parser, adapters, routers
+├── frontend/src/         # React UI + Claude DESIGN tokens
+├── scripts/              # start-local.ps1 + smoke tests
+├── docs/compose/spec/    # feature spec
+├── docker-compose.yml    # optional
 ├── .env.example
-├── README.md                  # Chinese
-└── README.en.md               # English (this file)
+├── README.md             # Chinese
+├── README.en.md          # English (this file)
+└── CONTRIBUTING.md
 ```
 
 ---
 
 ## 13. FAQ / troubleshooting
 
-### UI loads but search fails
+### UI loads, search fails
 
-1. Is the API up? `curl http://127.0.0.1:8000/api/health`  
-2. Is the Vite proxy pointing at 8000? (`frontend/vite.config.ts`)  
-3. CORS errors in the browser console → align `CORS_ORIGINS`  
+1. Is API up? `curl http://127.0.0.1:8000/api/health`  
+2. Check Vite proxy in `frontend/vite.config.ts`  
+3. Check `CORS_ORIGINS` for browser CORS errors  
 
-### Empty search results
+### Empty results
 
-- Fix syntax (`TI=` with no space)  
-- Confirm outbound API access  
+- Fix query syntax (no space after `TI=`)  
+- Confirm outbound network  
 - Set `CROSSREF_MAILTO`  
 - Try a single source (e.g. Crossref only)  
 
-### Many `429 Too Many Requests`
+### HTTP 429 rate limits
 
-OpenAlex / arXiv / Semantic Scholar rate-limit shared IPs hard.
+OpenAlex / arXiv / Semantic Scholar throttle shared IPs.
 
-- Slow down  
-- Set `CROSSREF_MAILTO`  
-- Set `SEMANTIC_SCHOLAR_API_KEY`  
-- Retry later; one failing source does not fail the whole search  
+- Slow down; set mailto / S2 API key  
+- Per-source failures appear under `sources` without failing the whole search  
 
 ### `uvicorn` / `python` not found
 
-- Windows: `py -3.11` or full path; activate the venv  
-- macOS/Linux: `python3`; `source .venv/bin/activate`  
+- Windows: try `py -3.11` or activate the venv  
+- Unix: use `python3` and `source .venv/bin/activate`  
 
-### Ports in use
+### Port already in use
 
 ```bash
 # Windows
 netstat -ano | findstr :8000
 netstat -ano | findstr :3000
-
 uvicorn app.main:app --port 8001
 ```
 
-Also update Vite proxy / CORS if you change ports.
-
-### Topic stays at `last_results_count=0`
-
-- Query too narrow?  
-- Click **Refresh** and read backend logs  
-- Rate limits can temporarily yield zero hits  
-
 ### Where is the SQLite file?
 
-`backend/litscope.db` (gitignored). Back it up by copying the file.
+`backend/litscope.db` (gitignored). Copy the file to back up.
 
-### Reset everything
+### Start clean
 
-Stop servers → delete `backend/litscope.db` → start again (schema recreates).
-
-### Docker issues
-
-This project does **not** require Docker. Use section 3 if you have no Docker.
+Stop servers → delete `backend/litscope.db` → start again.
 
 ---
 
-## 14. Security and limitations
+## 14. Security & limitations
 
-- **Single-user, no auth**. Default bind is local. **Do not expose to the public internet.**  
-- Follow each academic API’s terms; configure a real `mailto`.  
-- No Google Scholar scraping.  
-- No PDF full-text manager, no multi-user ACL.  
-- Chinese databases (e.g. CNKI) are not integrated.  
+- Single-user, no auth — bind to localhost; **do not expose to the public internet**  
+- Respect each academic API’s terms; configure a real `mailto`  
+- No Google Scholar scraping  
+- No multi-user auth, no full-text PDF management  
+- No CNKI / Chinese proprietary databases  
 
 ---
 
 ## 15. Contributing
 
-Please read [CONTRIBUTING.md](./CONTRIBUTING.md).
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-**Development credit**: LitScope Local was initially developed with **Xiaomi MIMO — MiMo-X-Pro-Preview**. Subsequent contributions are welcome via issues and pull requests.
+**This project was developed with Xiaomi MIMO — MiMo-X-Pro-Preview.** When opening issues or PRs, please mention that context if your change builds on MIMO-generated scaffolding.
 
 ---
 

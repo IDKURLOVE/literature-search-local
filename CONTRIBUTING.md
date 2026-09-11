@@ -2,140 +2,144 @@
 
 Thanks for your interest in improving LitScope Local.
 
-> **Development attribution**  
-> The initial implementation of this repository was developed with **Xiaomi MIMO — MiMo-X-Pro-Preview** (Xiaomi’s MiMo coding agent).  
-> Please keep this credit in the README, release notes, and derivative documentation when you redistribute or substantially fork the project.
+> **Development credit**: This project was developed with assistance from **Xiaomi MIMO — MiMo-X-Pro-Preview**.  
+> Substantial portions of the initial application (backend adapters, query bridge, native deploy path, frontend Claude DESIGN tokens, and docs) were produced in an assisted engineering workflow with that model. Please keep this notice when forking or substantially rewriting the README.
 
-中文贡献说明见文末摘要；英文流程为准。
+[中文 README](./README.md) · [English README](./README.en.md)
 
 ---
 
 ## Ways to contribute
 
-- Report bugs (GitHub Issues)
-- Improve docs (README zh/en, comments, examples)
-- Fix adapters / rate-limit handling
-- Add tests
-- Implement features from the roadmap below (open an issue first for large items)
+- Bug reports and reproducible issues  
+- Docs fixes (typos, clearer setup steps, OS-specific notes)  
+- Source adapter improvements (rate-limit handling, field mapping)  
+- UI/UX polish that stays within the existing design tokens  
+- Tests (parser, dedup, export, adapter contract tests)  
 
-**Out of scope (please do not PR):**
+Please **do not** open PRs that:
 
-- Google Scholar scrapers
-- Multi-tenant auth systems (unless discussed)
-- Breaking the single-user local-first defaults without an issue thread
+- Add Google Scholar scraping or other ToS-violating collectors  
+- Introduce multi-tenant auth without a prior design discussion  
+- Bundle large binary assets or secrets (`.env`, API keys)  
 
 ---
 
-## Development setup
+## Before you start
 
-Prerequisites: Python 3.11+, Node.js 18+, Git.
+1. Read the [English README](./README.en.md) or [中文 README](./README.md) and get the app running natively.  
+2. Search existing [Issues](https://github.com/IDKURLOVE/literature-search-local/issues) to avoid duplicates.  
+3. For larger changes, open an issue first to discuss scope.  
+
+---
+
+## Dev environment
 
 ```bash
 git clone https://github.com/IDKURLOVE/literature-search-local.git
 cd literature-search-local
-cp .env.example .env
-# set CROSSREF_MAILTO=you@example.com
 
 # Backend
 cd backend
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+# Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
 pytest -q
 
-# Frontend (another terminal)
+# Frontend (other terminal)
 cd ../frontend
 npm install
-npm run build
+npm run dev
 ```
 
-Run locally:
+Default stack for contributors: **SQLite + in-process scheduler**. You do not need Docker.
 
-```bash
-# backend
-cd backend && source .venv/bin/activate
-export DATABASE_URL="sqlite+aiosqlite:///$(pwd)/litscope.db"
-export REFRESH_MODE=inline
-uvicorn app.main:app --reload --port 8000
+Useful env for local work (`.env` in repo root or export in shell):
 
-# frontend
-cd frontend && npm run dev
+```env
+CROSSREF_MAILTO=you@example.com
+ENABLE_SCHEDULER=true
+REFRESH_MODE=inline
 ```
-
-Windows one-shot: `scripts\start-local.ps1`
 
 ---
 
-## Ground rules
+## Project map (where to change what)
 
-1. **Evidence over invention** — do not invent API endpoints, field names, or third-party behaviors. Cite docs or code when claiming how something works.
-2. **Keep the local-first defaults** — SQLite + in-process scheduler must keep working without Docker/Redis.
-3. **Polite HTTP** — all outbound academic API calls should go through `backend/app/sources/http_util.py` (User-Agent + mailto + clear 429 errors).
-4. **No secrets in git** — never commit `.env`, API keys, or `litscope.db`.
-5. **UI language** — default user-facing copy is Chinese; keep labels consistent. English docs live in `README.en.md`.
-6. **Design tokens** — frontend visuals follow Claude DESIGN.md tokens in `frontend/src/styles/tokens.css`. Do not introduce a second brand palette.
+| Area | Path |
+|---|---|
+| WOS parser | `backend/app/search.py` |
+| Query → source free text / years | `backend/app/query_bridge.py` |
+| Source adapters | `backend/app/sources/*.py` |
+| Shared polite HTTP client | `backend/app/sources/http_util.py` |
+| Dedup / synthetic IDs | `backend/app/sources/__init__.py` |
+| API routes | `backend/app/routers/` |
+| Topic refresh (Celery + inline) | `backend/app/tasks.py` |
+| In-process scheduler | `backend/app/main.py` |
+| Design tokens (Claude DESIGN.md) | `frontend/src/styles/tokens.css` |
+| Ant Design theme | `frontend/src/App.tsx` |
+| Pages | `frontend/src/pages/` |
+| Native start script | `scripts/start-local.ps1` |
+
+Visual tokens must stay aligned with **Claude DESIGN.md** (`#faf9f5` canvas, `#cc785c` primary, serif display). Do not invent a second brand palette.
+
+---
+
+## Coding guidelines
+
+### Backend (Python)
+
+- Python 3.11+, type hints on public functions  
+- SQLAlchemy 2.0 async style; load relationships with `selectinload` when accessed under async  
+- Prefer small pure functions for parsing/dedup so they stay unit-testable  
+- Academic HTTP calls go through `app.sources.http_util` (User-Agent + clearer 429 errors)  
+- Do not commit `backend/litscope.db`  
+
+### Frontend (TypeScript / React)
+
+- Strict TypeScript; no `any` in new code without a comment explaining why  
+- Reuse existing components (`SearchBox`, `PaperCard`, `TopicList`, …)  
+- User-facing copy in Chinese by default (match the existing UI); keep labels short and action-oriented  
+- Respect `prefers-reduced-motion` and focus-visible states  
+
+### Commits
+
+- Prefer concise, imperative subjects in English (repo history is English)  
+  - Good: `fix: reconstruct OpenAlex abstract from inverted index`  
+  - Avoid: `update` / `fix stuff`  
+- Reference issue numbers when applicable (`#12`)  
+- Do not mix unrelated refactors with a single bugfix PR  
+
+---
+
+## Tests you should run
+
+```bash
+# Backend unit tests
+cd backend && pytest -q
+
+# Frontend typecheck + build
+cd frontend && npm run build
+
+# Optional live smoke (network + rate limits)
+cd .. && python scripts/live_search_smoke.py
+```
+
+PRs that change search/export/dedup **must** include or update unit tests under `backend/tests/`.
 
 ---
 
 ## Pull request process
 
-1. Open an issue for non-trivial changes (skip for typos / tiny fixes).
-2. Fork and create a branch: `git checkout -b feat/short-name`
-3. Make focused commits. Suggested prefixes:
-   - `feat:` new capability
-   - `fix:` bug fix
-   - `docs:` documentation only
-   - `test:` tests only
-   - `refactor:` no behavior change
-4. **Before you push**, run:
+1. Fork and create a branch from `master`  
+   - `feat/...`, `fix/...`, `docs/...`  
+2. Implement with tests; keep the diff focused  
+3. Run the test commands above and paste results in the PR description  
+4. Fill the PR template fields (problem, approach, verification)  
+5. Be ready to iterate on review comments  
 
-   ```bash
-   cd backend && pytest -q          # expect 15+ passed
-   cd ../frontend && npm run build  # tsc + vite must pass
-   ```
-
-5. Update docs when behavior changes (`README.md`, `README.en.md`, `.env.example`).
-6. Open a PR with:
-   - What / why
-   - How you verified (commands + results)
-   - Screenshots for UI changes
-7. Keep PRs small when possible; large dumps are hard to review.
-
-### Commit message example
-
-```text
-fix: rebuild OpenAlex abstracts from inverted index
-
-OpenAlex never returns a plain abstract field. Reconstruct text from
-abstract_inverted_index so library cards show abstracts.
-```
-
----
-
-## Adding a new data source
-
-1. Create `backend/app/sources/<name>.py` with:
-
-   ```python
-   async def search(request: SearchRequest, translated: TranslatedQuery) -> list[PaperCreate]: ...
-   ```
-
-2. Register it in `SOURCE_MAP` in `backend/app/sources/__init__.py`.
-3. Use `http_util.get_json` / `get_text` only.
-4. Map fields into `PaperCreate` (title required; prefer DOI).
-5. Add unit tests for mapping/dedup if logic is non-trivial.
-6. Document the source in both READMEs.
-
----
-
-## Testing checklist
-
-- [ ] `pytest -q` green in `backend/`
-- [ ] `npm run build` green in `frontend/`
-- [ ] Manual smoke: `/api/health`, one search, create topic, export sample
-- [ ] No new dependency without justification in the PR body
-
-Live API calls may return `429` — that is environmental. Prefer mocked unit tests for CI-sensitive logic.
+Maintainers may squash-merge small PRs.
 
 ---
 
@@ -143,27 +147,24 @@ Live API calls may return `429` — that is environmental. Prefer mocked unit te
 
 Include:
 
-- OS and versions (`python -V`, `node -v`)
-- Exact steps to reproduce
-- Expected vs actual
-- Relevant logs (backend console, browser network tab)
-- Whether native or Docker mode
+- OS and versions (`python -V`, `node -v`)  
+- Exact steps to reproduce  
+- Expected vs actual  
+- Relevant logs (backend console, browser network tab)  
+- Whether you used native SQLite or Docker/Postgres  
 
-Security issues: do not file a public issue with exploit details; contact the maintainer privately when possible.
+Security-sensitive findings: do not post secrets; open a private report if possible, or scrub credentials before posting.
+
+---
+
+## Design / product notes
+
+- Single-user local tool: prioritize clarity over enterprise features  
+- Rate limits are environmental; prefer graceful per-source errors over hard failures  
+- Keep Xiaomi MIMO attribution in README headers when making doc-wide rewrites  
 
 ---
 
 ## License
 
 By contributing, you agree that your contributions are licensed under the MIT License of this repository.
-
----
-
-## 中文摘要
-
-- 本仓库初始版本由 **Xiaomi MIMO — MiMo-X-Pro-Preview** 协助开发；请在 README / 衍生文档中保留该署名。
-- 贡献前请跑通：`backend/pytest -q` 与 `frontend/npm run build`。
-- 保持「本地优先」：无 Docker 时 SQLite + 进程内调度必须可用。
-- 外网请求必须走 `http_util`，禁止提交 `.env` / 密钥 / 数据库文件。
-- 新数据源：实现 `search(request, translated)` 并注册到 `SOURCE_MAP`。
-- PR 请说明验证命令与结果；大改动先开 Issue。
