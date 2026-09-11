@@ -4,6 +4,8 @@
 
 > **开发标注**：本项目由 **Xiaomi MIMO — MiMo-X-Pro-Preview** 协助搭建完成。
 
+**English docs**: [README.en.md](./README.en.md) · **贡献指南**: [CONTRIBUTING.md](./CONTRIBUTING.md)
+
 **默认部署方式：原生运行（SQLite + 进程内调度），不需要 Docker、Postgres、Redis。**
 
 | | |
@@ -32,7 +34,8 @@
 12. [目录结构](#12-目录结构)
 13. [常见问题（FAQ / 排错）](#13-常见问题faq--排错)
 14. [安全与限制](#14-安全与限制)
-15. [License](#15-license)
+15. [贡献](#15-贡献)
+16. [License](#16-license)
 
 ---
 
@@ -507,7 +510,15 @@ uvicorn app.main:app --port 8001
 
 ---
 
-## 15. License
+## 15. 贡献
+
+欢迎 Issue / PR。请先阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+
+**开发署名**：本仓库初始版本由 **Xiaomi MIMO — MiMo-X-Pro-Preview** 协助开发完成。二次分发或深度 fork 时，请在文档中保留该署名。
+
+---
+
+## 16. License
 
 MIT
 
