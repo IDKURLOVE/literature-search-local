@@ -17,7 +17,7 @@ export function TopicList({ topics, loading, onRefresh, onDelete, onOpen }: Prop
     return (
       <Empty
         className="ls-empty"
-        description="还没有研究主题。先搜索，再点「保存为检索主题」。"
+        description="还没有研究主题。点右上角「新建主题」，或在检索页搜完后点「保存为研究主题」。"
         image={Empty.PRESENTED_IMAGE_SIMPLE}
       />
     );

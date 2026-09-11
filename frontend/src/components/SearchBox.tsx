@@ -25,11 +25,12 @@ export function SearchBox({
         <Input
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder='例如：TI="large language model" AND PY=2023-2024'
+          placeholder="输入主题关键词，例如：large language model"
           onPressEnter={onSearch}
           size="large"
+          allowClear
           suffix={
-            <Tooltip title="支持字段：TI 标题 · AU 作者 · AB 摘要 · SO 期刊 · PY 年份 · DO DOI · TS 主题 · AF 全部。算符：AND OR NOT NEAR/x">
+            <Tooltip title="直接输关键词即可。进阶：TI=标题 AU=作者 PY=年份 AND/OR/NOT">
               <QuestionCircleOutlined style={{ color: "var(--ls-muted)" }} />
             </Tooltip>
           }
@@ -46,15 +47,16 @@ export function SearchBox({
         </Button>
       </Space.Compact>
 
-      <div>
-        <span style={{ marginRight: 8, color: "var(--ls-muted)", fontSize: 13 }}>数据源</span>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <span style={{ color: "var(--ls-muted)", fontSize: 13 }}>数据源</span>
         <Select
           mode="multiple"
           value={sources}
           onChange={onSourcesChange}
-          style={{ minWidth: 320, maxWidth: "100%" }}
+          style={{ minWidth: 280, maxWidth: "100%" }}
           options={AVAILABLE_SOURCES.map((s) => ({ value: s.value, label: s.label }))}
-          placeholder="选择至少一个数据源"
+          placeholder="默认 Crossref + OpenAlex"
+          maxTagCount="responsive"
         />
       </div>
     </div>

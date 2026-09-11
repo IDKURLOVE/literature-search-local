@@ -5,7 +5,7 @@ import { SearchBox } from "../components/SearchBox";
 import { AdvancedSearchHelp } from "../components/AdvancedSearchHelp";
 import { PaperCard } from "../components/PaperCard";
 import { createPaper, createTopic, searchPapers } from "../api/client";
-import { useSearchStore } from "../store/searchStore";
+import { DEFAULT_SOURCES, useSearchStore } from "../store/searchStore";
 import type { Paper } from "../types";
 
 const { Title, Text } = Typography;
@@ -16,13 +16,26 @@ export function HomePage() {
   const [sourceStatus, setSourceStatus] = useState<Record<string, unknown>>({});
 
   const searchMutation = useMutation({
-    mutationFn: () => searchPapers({ query, sources }),
+    mutationFn: () => {
+      const q = query.trim();
+      if (!q) {
+        throw new Error("empty");
+      }
+      return searchPapers({
+        query: q,
+        sources: sources.length ? sources : DEFAULT_SOURCES,
+      });
+    },
     onSuccess: (data) => {
       setPapers(data.papers || []);
       setSourceStatus(data.sources || {});
     },
-    onError: () => {
-      message.error("搜索失败：请检查后端是否已启动，或查询语法是否正确");
+    onError: (err) => {
+      if ((err as Error).message === "empty") {
+        message.warning("请先输入主题关键词");
+        return;
+      }
+      message.error("搜索失败：请检查后端是否已启动，或稍后重试（数据源可能限流）");
     },
   });
 
@@ -49,14 +62,15 @@ export function HomePage() {
   });
 
   const saveQueryAsTopic = async () => {
-    if (!query.trim()) return;
+    const q = query.trim();
+    if (!q) return;
     try {
       await createTopic({
-        name: query.slice(0, 80),
-        query,
-        sources,
+        name: q.slice(0, 80),
+        query: q,
+        sources: sources.length ? sources : DEFAULT_SOURCES,
       });
-      message.success("当前检索已保存为研究主题");
+      message.success("已保存为研究主题");
     } catch {
       message.error("保存失败");
     }
@@ -69,8 +83,8 @@ export function HomePage() {
           检索开放学术源
         </Title>
         <p>
-          用类 Web of Science 语法并行查询 Crossref、OpenAlex、Semantic Scholar、PubMed、arXiv。
-          结果去重后展示 DOI / 开放获取链接，可一键保存为研究主题并定时刷新。
+          直接输入主题关键词，即可并行查询 Crossref、OpenAlex、Semantic Scholar、PubMed、arXiv。
+          结果自动去重，可收藏到文献库，或保存为研究主题定时刷新。
         </p>
       </section>
 
@@ -83,7 +97,7 @@ export function HomePage() {
           onSourcesChange={setSources}
           onSearch={() => searchMutation.mutate()}
         />
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 8 }}>
           <AdvancedSearchHelp />
         </div>
       </div>
@@ -95,7 +109,7 @@ export function HomePage() {
               <Text>
                 找到 <Text strong>{papers.length}</Text> 条结果
               </Text>
-              <a onClick={saveQueryAsTopic}>保存为检索主题</a>
+              <a onClick={saveQueryAsTopic}>保存为研究主题</a>
             </Space>
           </Divider>
 
@@ -108,8 +122,8 @@ export function HomePage() {
                   type="warning"
                   showIcon
                   style={{ marginBottom: 8 }}
-                  message={`${name} 请求失败`}
-                  description={s.error}
+                  message={`${name} 暂不可用`}
+                  description={s.error || "请求失败或被限流"}
                 />
               );
             }
@@ -118,7 +132,7 @@ export function HomePage() {
 
           <div className="ls-stack">
             {papers.length === 0 ? (
-              <div className="ls-empty">没有匹配结果。试试放宽年份，或增加数据源。</div>
+              <div className="ls-empty">没有匹配结果。换个关键词试试，或多选几个数据源。</div>
             ) : (
               papers.map((paper) => (
                 <PaperCard

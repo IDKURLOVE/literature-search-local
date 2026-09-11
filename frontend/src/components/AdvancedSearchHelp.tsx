@@ -21,7 +21,7 @@ export function AdvancedSearchHelp() {
       items={[
         {
           key: "help",
-          label: "类 WOS 检索语法说明",
+          label: "进阶：类 WOS 字段语法（可选）",
           children: (
             <div className="ls-stack">
               <div>

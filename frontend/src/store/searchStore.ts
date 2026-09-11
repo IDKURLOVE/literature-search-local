@@ -8,14 +8,23 @@ interface SearchState {
   setSources: (s: string[]) => void;
 }
 
+export const DEFAULT_SOURCES = ["crossref", "openalex"];
+
 export const useSearchStore = create<SearchState>()(
   persist(
     (set) => ({
-      query: 'TI="large language model" AND PY=2023-2024',
-      sources: ["crossref", "openalex"],
+      query: "",
+      sources: [...DEFAULT_SOURCES],
       setQuery: (q) => set({ query: q }),
-      setSources: (s) => set({ sources: s }),
+      setSources: (s) => set({ sources: s.length ? s : [...DEFAULT_SOURCES] }),
     }),
-    { name: "litscope-search" },
+    {
+      name: "litscope-search",
+      version: 2,
+      migrate: () => ({
+        query: "",
+        sources: [...DEFAULT_SOURCES],
+      }),
+    },
   ),
 );
