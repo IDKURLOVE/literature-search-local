@@ -1,5 +1,7 @@
 # Dependencies / build
 node_modules/
+.playwright-cli/
+scripts/ui-verify-*.png
 dist/
 venv/
 .venv/
